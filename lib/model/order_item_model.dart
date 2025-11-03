@@ -11,11 +11,13 @@ class OrderItemModel {
   final double? marketPrice;
   final double itemPrice;
   final int itemQty;
+  final double? discountPercentage;
 
   OrderItemModel({
     this.itemId,
     this.marketPrice,
     this.itemDescription,
+    this.discountPercentage,
     required this.productID,
     required this.orderId,
     required this.srNo,
@@ -28,6 +30,7 @@ class OrderItemModel {
   factory OrderItemModel.fromMap(Map<String, dynamic> map) {
     return OrderItemModel(
       itemId: map[ITEM_ID],
+      discountPercentage: map[DISCOUNT_PERCENTAGE],
       productID: map[PRODUCT_ID],
       orderId: map[ORDERID],
       itemName: map[ITEM_NAME],
@@ -48,6 +51,7 @@ class OrderItemModel {
       ORDERID: orderId,
       ITEM_NAME: itemName,
       ITEM_IMAGE: itemImage,
+      DISCOUNT_PERCENTAGE: discountPercentage,
       SERIAL_NUMBER: srNo,
       ITEM_DESCRIPTION: itemDescription,
       ITEM_PRICE: itemPrice,

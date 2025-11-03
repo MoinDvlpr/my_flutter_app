@@ -13,6 +13,9 @@ class ProductModel {
   final int categoryId;
   final String? categoryName;
   final String productImage; // now required
+  double? totalRevenue;
+  double? totalLoss;
+
   bool isFavorite;
 
   final double? discountedPrice;
@@ -20,6 +23,8 @@ class ProductModel {
 
   ProductModel({
     this.productId,
+    this.totalRevenue,
+    this.totalLoss,
     required this.productName,
     required this.marketPrice,
     required this.insertDate,

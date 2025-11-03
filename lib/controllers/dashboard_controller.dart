@@ -13,10 +13,11 @@ class DashboardController extends GetxController {
   @override
   void onInit() {
     fetchDashboardData();
-    fetchProfitLossData();
+    // fetchProfitLossData();
     fetchMostSellingProducts(isInitial: true);
-    fetchTop5RevenueProduct();
+    // fetchTop5RevenueProduct();
     _loadOrderLocations(); // Load order locations on init
+    log(":::: :::: :::: :::: ::: ::: ::: ::: on init called");
     super.onInit();
   }
 
@@ -47,7 +48,7 @@ class DashboardController extends GetxController {
     chartData.assignAll(data);
     for(var data in chartData) {
 
-    print("date ${data.date} profit ${data.profit} loss ${data.loss}");
+    log("date ${data.date} profit ${data.profit} loss ${data.loss}");
     }
   }
 
@@ -111,7 +112,7 @@ class DashboardController extends GetxController {
 
       // Convert List<Map<String, dynamic>> to List<OrderModel>
       final orderModels = orderData;
-      print("locations ${orderModels.length}");
+      log(":::: :::: ::: ::: ::: locations ${orderModels.length}");
       // Clear and populate markers
       markers.clear();
       for (var order in orderData) {

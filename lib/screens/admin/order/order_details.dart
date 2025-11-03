@@ -71,7 +71,7 @@ class OrderDetails extends StatelessWidget {
                     style: AppTextStyle.semiBoldTextstyle,
                   ),
                   subtitle: Text(
-                    "Qty: ${item.itemQty} • ₹${item.itemPrice.toStringAsFixed(0)}",
+                    "Qty: ${item.itemQty} • ₹${item.itemPrice.toStringAsFixed(0)} (${item.discountPercentage ?? 0}%)OFF",
                     style: AppTextStyle.regularTextstyle.copyWith(fontSize: 14),
                   ),
                   trailing: Text(

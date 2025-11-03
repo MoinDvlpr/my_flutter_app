@@ -1,6 +1,7 @@
 import 'dart:developer';
 import 'dart:math' as math;
 import 'package:sqflite/sqflite.dart';
+import 'package:uuid/uuid.dart';
 import '../model/address_model.dart';
 import '../model/cart_model.dart';
 import '../model/category_model.dart';
@@ -124,37 +125,41 @@ CREATE TABLE $FAVORITES (
         CREATE TABLE $PURCHASE_ORDERS (
         $PURCHASE_ORDER_ID INTEGER PRIMARY KEY AUTOINCREMENT,
         $IS_RECEIVED INTEGER NOT NULL,
+        $PRODUCT_ID INTEGER NOT NULL,
         $SUPPLIER_ID INTEGER NOT NULL,
         $ORDER_DATE TEXT NOT NULL,
+        $COST_PER_UNIT REAL NOT NULL,
         $TOTAL_QTY INTEGER,
         $TOTAL_COST REAL NOT NULL,
         $IS_PARTIALLY_RECIEVED INTEGER NOT NULL,
-        FOREIGN KEY ($SUPPLIER_ID) REFERENCES $SUPPLIERS($SUPPLIER_ID)
+        FOREIGN KEY ($SUPPLIER_ID) REFERENCES $SUPPLIERS($SUPPLIER_ID),
+        FOREIGN KEY ($PRODUCT_ID) REFERENCES $PRODUCTS($PRODUCT_ID)
         );''');
 
+
         await db.execute('''
-        CREATE TABLE $PURCHASE_ORDER_ITEMS (
-        $PURCHASE_ITEM_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-       $SERIAL_NUMBER TEXT,
+        CREATE TABLE 
+        $INVENTORY (
+        $INVENTORY_ID INTEGER PRIMARY KEY AUTOINCREMENT,
         $PURCHASE_ORDER_ID INTEGER NOT NULL,
         $PRODUCT_ID INTEGER NOT NULL,
-        $QUANTITY INTEGER NOT NULL,
+        $REMAINING INTEGER NOT NULL,
+        $SELLING_PRICE REAL NOT NULL,
         $COST_PER_UNIT REAL NOT NULL,
-        $IS_RECEIVED INTEGER NOT NULL,
-        FOREIGN KEY ($PURCHASE_ORDER_ID) REFERENCES $PURCHASE_ORDERS(PURCHASE_ORDER_ID),
-        FOREIGN KEY ($PRODUCT_ID) REFERENCES $PRODUCTS($PRODUCT_ID)
-        );
-''');
+        $IS_READY_FOR_SALE INTEGER NOT NULL,
+        $PURCHASE_DATE TEXT NOT NULL,
+        FOREIGN KEY ($PRODUCT_ID) REFERENCES $PRODUCTS($PRODUCT_ID),
+        FOREIGN KEY ($PURCHASE_ORDER_ID) REFERENCES $PURCHASE_ORDERS($PURCHASE_ORDER_ID)
+        );''');
 
         await db.execute('''
         CREATE TABLE 
         $INVENTORY_ITEMS (
         $INVENTORY_ITEM_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        $INVENTORY_QUANTITY INTEGER NOT NULL,
-        $PRODUCT_ID INTEGER NOT NULL,
+        $INVENTORY_ID INTEGER NOT NULL,
         $SERIAL_NUMBER TEXT NOT NULL UNIQUE,
-        $SELLING_PRICE REAL NOT NULL,
-        FOREIGN KEY ($PRODUCT_ID) REFERENCES $PRODUCTS($PRODUCT_ID)
+        $IS_SOLD INTEGER NOT NULL,
+        FOREIGN KEY ($INVENTORY_ID) REFERENCES $INVENTORY($INVENTORY_ID)
         );''');
 
         await db.execute('''
@@ -201,12 +206,12 @@ CREATE TABLE $ORDERS (
     $ITEM_ID INTEGER PRIMARY KEY AUTOINCREMENT,
     $PRODUCT_ID INTEGER NOT NULL,
     $ORDERID INTEGER,
-    $ITEM_NAME TEXT NOT NULL,
+    // $ITEM_NAME TEXT NOT NULL,
     $SERIAL_NUMBER TEXT NOT NULL,
-    $ITEM_IMAGE TEXT NOT NULL,
-    $ITEM_DESCRIPTION TEXT,
+    // $ITEM_IMAGE TEXT NOT NULL,
+    // $ITEM_DESCRIPTION TEXT,
     $ITEM_PRICE REAL NOT NULL,
-    $ITEM_QTY INTEGER NOT NULL,
+    $DISCOUNT_PERCENTAGE REAL,
     FOREIGN KEY ($ORDERID) REFERENCES $ORDERS($ORDERID) 
     FOREIGN KEY ($PRODUCT_ID) REFERENCES $PRODUCTS($PRODUCT_ID) 
     ON DELETE CASCADE
@@ -230,7 +235,8 @@ CREATE TABLE $ORDERS (
         await db.insert(CATEGORIES, {CATEGORY_NAME: 'Accessories'});
         await db.insert(CATEGORIES, {CATEGORY_NAME: 'Shoes'});
 
-        for (int i = 1; i <= 50; i++) {
+        for (int i = 1; i <= 5; i++) {
+          // Reduced from 50 to 5 for lighter dummy data
           await db.insert(CATEGORIES, {CATEGORY_NAME: 'Category $i'});
         }
 
@@ -248,7 +254,8 @@ CREATE TABLE $ORDERS (
           DISCOUNT_PERCENTAGE: 15,
         });
 
-        for (int i = 16; i < 100; i++) {
+        for (int i = 16; i < 20; i++) {
+          // Reduced from <100 to <20 for lighter dummy data
           await db.insert(DISCOUNT_GROUPS, {
             GROUP_NAME: 'Discount $i',
             DISCOUNT_PERCENTAGE: i,
@@ -267,7 +274,7 @@ CREATE TABLE $ORDERS (
           });
         }
 
-        // Bulk insert products
+        // Bulk insert products (limited to 100 records)
         List<String> images = [
           '/storage/emulated/0/Download/wdr2.jpg',
           '/storage/emulated/0/Download/wdr1.jpg',
@@ -275,328 +282,391 @@ CREATE TABLE $ORDERS (
         ];
         String imagePaths = images.join(',');
 
-        for (int i = 1; i <= 1000; i++) {
-          await db.insert(PRODUCTS, {
+        for (int i = 1; i <= 100; i++) {
+          // Reduced from 1000 to 100
+          final result = await db.insert(PRODUCTS, {
             PRODUCT_NAME: 'Product $i',
             SERIAL_NUMBER: 'INIT-SR-$i',
             PRODUCT_IMAGE: imagePaths,
             DESCRIPTION: 'Description for product $i',
             PRICE: (100 + i).toDouble(),
-            MARKET_RATE: (15000 + i % (i + 1)).toDouble(),
-            STOCK_QTY: 50 + i,
-            SOLD_QTY: i,
+            MARKET_RATE: (150 + i).toDouble(), // Simplified from odd modulo
+            STOCK_QTY:
+                5, // Reduced stock for consistency with inventory inserts
+            SOLD_QTY: i % 5, // Small sold qty
             INSERT_DATE: DateTime.now().toIso8601String(),
             CATEGORY_ID: (i % 5) + 1,
           });
+          // for (int j = 1; j <= 5; j++) {
+          //   // Reduced from 50+i to fixed 5 per product (total ~500 inventory records)
+          //   await db.insert(INVENTORY_ITEMS, {
+          //
+          //     SERIAL_NUMBER:
+          //         'SR-$result-INIT-${Uuid().v4().replaceAll('-', '').substring(0, 8)}-$j',
+          //     SELLING_PRICE: (100 + i).toDouble(),
+          //   });
+          // }
         }
-        // Constants
-        List<String> statuses = [
-          'Paid',
-          'Delivered',
-          'Processing',
-          'Cancelled',
-          'Shipped',
-        ];
-        List<String> paymentMethods = ['Razorpay', 'Cash on Delivery', 'UPI'];
-
-        final random = math.Random();
-
-        // Get all products (just once)
-        final productList = await db.query(PRODUCTS);
-
-        // Bulk insert orders and items
-        for (int i = 1; i <= 1000; i++) {
-          int userId = (i % 100) + 1;
-          int addressId = (i % 100) + 1;
-          final latitude = 8.0 + random.nextDouble() * (37.0 - 8.0);
-          final longitude = 68.0 + random.nextDouble() * (97.0 - 68.0);
-          // Use dummy address and customer info
-          String customerName = "User $userId";
-          String shippingAddress = "Address $addressId";
-
-          // Select random number of items for this order
-          int itemCount = random.nextInt(5) + 1;
-
-          double totalAmount = 0.0;
-          int totalQty = 0;
-
-          // Pick random products for this order
-          final items = List.generate(itemCount, (index) {
-            final product = productList[random.nextInt(productList.length)];
-            int qty = random.nextInt(3) + 1;
-            double price = product[PRICE] as double;
-            totalAmount += price * qty;
-            totalQty += qty;
-
-            // Generate a dummy serial for order item
-            final String orderItemSr = 'ORDER-SR-${i}-ITEM-${index + 1}';
-
-            return {
-
-              ITEM_NAME: product[PRODUCT_NAME],
-              PRODUCT_ID:product[PRODUCT_ID],
-              SERIAL_NUMBER: orderItemSr,
-              ITEM_IMAGE: product[PRODUCT_IMAGE],
-              ITEM_DESCRIPTION: product[DESCRIPTION],
-              ITEM_PRICE: price,
-              ITEM_QTY: qty,
-            };
-          });
-
-          // Insert into ORDERS
-          int orderId = await db.insert(ORDERS, {
-            USERID: userId,
-            ORDER_STATUS: statuses[random.nextInt(statuses.length)],
-            ORDER_DATE: DateTime.now()
-                .subtract(Duration(days: random.nextInt(30)))
-                .toIso8601String(),
-            SHIPPING_ADDRESS: shippingAddress,
-            CUSTOMER_NAME: customerName,
-            PAYMENT_METHOD:
-            paymentMethods[random.nextInt(paymentMethods.length)],
-            RP_ORDER_ID: null,
-            RP_PAYMENT_ID: null,
-            RP_SIGNATURE: null,
-            TOTAL_QTY: totalQty,
-            TOTAL_AMOUNT: totalAmount,
-            LATITUDE: latitude,
-            LONGITUDE: longitude,
-          });
-
-          // Insert ORDER_ITEMS
-          for (final item in items) {
-            await db.insert(ORDER_ITEMS, {ORDERID: orderId, ...item});
-          }
-        }
-
-        // Bulk insert suppliers
-        for (int i = 1; i <= 100; i++) {
-          await db.insert(SUPPLIERS, {
-            SUPPLIER_NAME: 'Supplier $i',
-            CONTACT: 9000000000 + i,
-            IS_DELETED: 0,
-          });
-        }
-
-        // Add this code after the supplier bulk insert in your _initDatabase() method
-// (after the "Bulk insert suppliers" section)
-
-// Bulk insert purchase orders with items
-
-        final productsList = await db.query(PRODUCTS, limit: 100);
-
-        for (int i = 1; i <= 50; i++) {
-          final supplierId = (i % 100) + 1;
-          final orderDate = DateTime.now().subtract(Duration(days: random.nextInt(90)));
-          final isReceived = random.nextInt(10) > 6 ? 1 : 0; // 30% received
-          final isPartiallyReceived = isReceived == 0 && random.nextBool() ? 1 : 0;
-
-          // Generate 3-8 items per order
-          final itemCount = random.nextInt(6) + 3;
-          final selectedProducts = List.generate(
-            itemCount,
-                (_) => productsList[random.nextInt(productsList.length)],
-          );
-
-          int totalQty = 0;
-          double totalCost = 0.0;
-
-          // Calculate totals
-          for (var product in selectedProducts) {
-            final qty = random.nextInt(20) + 5;
-            final costPerUnit = (product[PRICE] as double) * 0.7; // 70% of selling price
-            totalQty += qty;
-            totalCost += costPerUnit * qty;
-          }
-
-          // Insert purchase order
-          final poId = await db.insert(PURCHASE_ORDERS, {
-            IS_RECEIVED: isReceived,
-            SUPPLIER_ID: supplierId,
-            ORDER_DATE: orderDate.toIso8601String(),
-            TOTAL_QTY: totalQty,
-            TOTAL_COST: totalCost,
-            IS_PARTIALLY_RECIEVED: isPartiallyReceived,
-          });
-
-
-          // Insert purchase order items (with realistic variation)
-          for (var product in selectedProducts) {
-            final productId = product[PRODUCT_ID] as int;
-            final qty = random.nextInt(20) + 5;
-
-            // Randomize cost: sometimes higher (loss), sometimes lower (profit)
-            final price = product[PRICE] as double;
-            final double variation = random.nextBool() ? 0.8 : 1.2; // 80% = profit, 120% = loss
-            final double costPerUnit = price * variation * 0.7; // adjust baseline cost
-
-            final srNo = SRGenerator.generateSR(productId, poId);
-
-            await db.insert(PURCHASE_ORDER_ITEMS, {
-              SERIAL_NUMBER: srNo,
-              PURCHASE_ORDER_ID: poId,
-              PRODUCT_ID: productId,
-              QUANTITY: qty,
-              COST_PER_UNIT: costPerUnit,
-              IS_RECEIVED: isReceived,
-            });
-
-            // If received, add to inventory and update stock
-            if (isReceived == 1) {
-              final sellingPrice = price;
-
-              await db.insert(INVENTORY_ITEMS, {
-                INVENTORY_QUANTITY: qty,
-                PRODUCT_ID: productId,
-                SERIAL_NUMBER: srNo,
-                SELLING_PRICE: sellingPrice,
-              });
-
-              final currentStock = product[STOCK_QTY] as int;
-              await db.update(
-                PRODUCTS,
-                {STOCK_QTY: currentStock + qty},
-                where: '$PRODUCT_ID = ?',
-                whereArgs: [productId],
-              );
-            }
-          }
-        }
-
-        // Bulk insert addresses
-
-        final count =
-            Sqflite.firstIntValue(
-              await db.rawQuery('SELECT COUNT(*) FROM $ADDRESSES'),
-            ) ??
-            0;
-        if (count == 0) {
-          final random = math.Random();
-          for (int i = 1; i <= 100; i++) {
-            final latitude = 8.0 + random.nextDouble() * (37.0 - 8.0);
-            final longitude = 68.0 + random.nextDouble() * (97.0 - 68.0);
-            await db.insert(ADDRESSES, {
-              USERID: i,
-              FULL_NAME: 'User $i',
-              PHONE: 9876540000 + i,
-              ADDRESS: 'Address $i',
-              CITY: 'City $i',
-              STATE: 'State $i',
-              COUNTRY: 'India',
-              ZIPCODE: 'ZIP $i',
-              IS_DEFAULT: 1,
-              LATITUDE: latitude,
-              LONGITUDE: longitude,
-            });
-          }
-        }
-
-        // ---- INSERT DUMMY PROFIT & LOSS TEST DATA ----
-        print('Inserting profit/loss test data...');
-
-// Create a sample purchase order (COST DATA)
-        final testPurchaseOrderId = await db.insert(PURCHASE_ORDERS, {
-          IS_RECEIVED: 1,
-          SUPPLIER_ID: 1,
-          ORDER_DATE: '2025-10-20',
-          TOTAL_QTY: 10,
-          TOTAL_COST: 0,
-          IS_PARTIALLY_RECIEVED: 0,
-        });
-
-// Manually insert known-cost purchase items
-        final testItems = [
-          // product_id, sr_no, cost_per_unit
-          {'product_id': 1, 'sr_no': 'SR-P1', 'cost_per_unit': 100.0},
-          {'product_id': 2, 'sr_no': 'SR-P2', 'cost_per_unit': 200.0},
-          {'product_id': 3, 'sr_no': 'SR-P3', 'cost_per_unit': 500.0},
-          {'product_id': 4, 'sr_no': 'SR-P4', 'cost_per_unit': 1000.0},
-        ];
-
-        for (final item in testItems) {
-          await db.insert(PURCHASE_ORDER_ITEMS, {
-            SERIAL_NUMBER: item['sr_no'],
-            PURCHASE_ORDER_ID: testPurchaseOrderId,
-            PRODUCT_ID: item['product_id'],
-            QUANTITY: 10,
-            COST_PER_UNIT: item['cost_per_unit'],
-            IS_RECEIVED: 1,
-          });
-        }
-
-// ---- CREATE SALES ORDERS ----
-
-// 1️⃣ PROFIT day (sell higher than cost)
-        final orderProfitId = await db.insert(ORDERS, {
-          USERID: 1,
-          ORDER_STATUS: 'Delivered',
-          ORDER_DATE: '2025-10-21',
-          SHIPPING_ADDRESS: 'Test Address 1',
-          CUSTOMER_NAME: 'Profit Customer',
-          PAYMENT_METHOD: 'Cash on Delivery',
-          TOTAL_QTY: 5,
-          TOTAL_AMOUNT: 0,
-          LATITUDE: 10.0,
-          LONGITUDE: 70.0,
-        });
-
-        await db.insert(ORDER_ITEMS, {
-          ORDERID: orderProfitId,
-          PRODUCT_ID: 1,
-          ITEM_NAME: 'Product 1',
-          SERIAL_NUMBER: 'SR-P1',
-          ITEM_IMAGE: '/storage/emulated/0/Download/wdr1.jpg',
-          ITEM_DESCRIPTION: 'Profit case',
-          ITEM_PRICE: 150.0, // sold above cost 100
-          ITEM_QTY: 3,
-        });
-        await db.insert(ORDER_ITEMS, {
-          ORDERID: orderProfitId,
-          PRODUCT_ID: 2,
-          ITEM_NAME: 'Product 2',
-          SERIAL_NUMBER: 'SR-P2',
-          ITEM_IMAGE: '/storage/emulated/0/Download/wdr2.jpg',
-          ITEM_DESCRIPTION: 'Profit case',
-          ITEM_PRICE: 300.0, // sold above cost 200
-          ITEM_QTY: 2,
-        });
-
-// 2️⃣ LOSS day (sell lower than cost)
-        final orderLossId = await db.insert(ORDERS, {
-          USERID: 1,
-          ORDER_STATUS: 'Delivered',
-          ORDER_DATE: '2025-10-22',
-          SHIPPING_ADDRESS: 'Test Address 2',
-          CUSTOMER_NAME: 'Loss Customer',
-          PAYMENT_METHOD: 'UPI',
-          TOTAL_QTY: 6,
-          TOTAL_AMOUNT: 0,
-          LATITUDE: 11.0,
-          LONGITUDE: 72.0,
-        });
-
-        await db.insert(ORDER_ITEMS, {
-          ORDERID: orderLossId,
-          PRODUCT_ID: 3,
-          ITEM_NAME: 'Product 3',
-          SERIAL_NUMBER: 'SR-P3',
-          ITEM_IMAGE: '/storage/emulated/0/Download/wd3.jpg',
-          ITEM_DESCRIPTION: 'Loss case',
-          ITEM_PRICE: 400.0, // sold below cost 500
-          ITEM_QTY: 3,
-        });
-        await db.insert(ORDER_ITEMS, {
-          ORDERID: orderLossId,
-          PRODUCT_ID: 4,
-          ITEM_NAME: 'Product 4',
-          SERIAL_NUMBER: 'SR-P4',
-          ITEM_IMAGE: '/storage/emulated/0/Download/wdr2.jpg',
-          ITEM_DESCRIPTION: 'Loss case',
-          ITEM_PRICE: 900.0, // sold below cost 1000
-          ITEM_QTY: 3,
-        });
-
-        print('✅ Profit/loss test records inserted successfully.');
+//         // Constants
+//         List<String> statuses = [
+//           'Paid',
+//           'Delivered',
+//           'Processing',
+//           'Cancelled',
+//           'Shipped',
+//         ];
+//         List<String> paymentMethods = ['Razorpay', 'Cash on Delivery', 'UPI'];
+//
+//         // ---- BULK INSERT ORDERS (WITH REAL SERIAL NUMBER MAPPING) ----
+//         final random = math.Random();
+//         final productList = await db.query(PRODUCTS);
+//
+//         // Fetch all available inventory SRs grouped by product
+//         final inventoryByProduct = <int, List<String>>{};
+//         final allInventory = await db.query(
+//           INVENTORY_ITEMS,
+//           columns: [PRODUCT_ID, SERIAL_NUMBER],
+//         );
+//         for (final row in allInventory) {
+//           final pid = row[PRODUCT_ID] as int;
+//           final sr = row[SERIAL_NUMBER] as String;
+//           inventoryByProduct.putIfAbsent(pid, () => []).add(sr);
+//         }
+//
+//         // Insert limited dummy orders
+//         for (int i = 1; i <= 100; i++) {
+//           int userId = (i % 100) + 1;
+//           String customerName = "User $userId";
+//           String shippingAddress = "Address $userId";
+//
+//           final latitude = 8.0 + random.nextDouble() * (37.0 - 8.0);
+//           final longitude = 68.0 + random.nextDouble() * (97.0 - 68.0);
+//
+//           int itemCount = random.nextInt(3) + 1; // 1–3 products per order
+//           double totalAmount = 0;
+//           int totalQty = 0;
+//           final List<Map<String, dynamic>> orderItems = [];
+//
+//           // Build order items
+//           for (int j = 0; j < itemCount; j++) {
+//             final product = productList[random.nextInt(productList.length)];
+//             int productId = product[PRODUCT_ID] as int;
+//             double price = product[PRICE] as double;
+//
+//             // Get available SRs for this product
+//             final availableSRs = inventoryByProduct[productId] ?? [];
+//
+//             if (availableSRs.isNotEmpty) {
+//               // Take one SR and remove it (so it's not reused)
+//               final sr = availableSRs.removeAt(0);
+//               orderItems.add({
+//                 PRODUCT_ID: productId,
+//                 ITEM_NAME: product[PRODUCT_NAME],
+//                 SERIAL_NUMBER: sr,
+//                 ITEM_IMAGE: product[PRODUCT_IMAGE],
+//                 ITEM_DESCRIPTION: product[DESCRIPTION],
+//                 ITEM_PRICE: price,
+//                 ITEM_QTY: 1,
+//               });
+//               totalAmount += price;
+//               totalQty += 1;
+//             } else {
+//               // Fallback (rare): no SRs left → generate placeholder SR
+//               final dummySR =
+//                   'SR-${productId}-OUT-${Uuid().v4().substring(0, 6)}';
+//               orderItems.add({
+//                 PRODUCT_ID: productId,
+//                 ITEM_NAME: product[PRODUCT_NAME],
+//                 SERIAL_NUMBER: dummySR,
+//                 ITEM_IMAGE: product[PRODUCT_IMAGE],
+//                 ITEM_DESCRIPTION: product[DESCRIPTION],
+//                 ITEM_PRICE: price,
+//                 ITEM_QTY: 1,
+//               });
+//               totalAmount += price;
+//               totalQty += 1;
+//             }
+//           }
+//
+//           // Insert into ORDERS
+//           int orderId = await db.insert(ORDERS, {
+//             USERID: userId,
+//             ORDER_STATUS: statuses[random.nextInt(statuses.length)],
+//             ORDER_DATE: DateTime.now()
+//                 .subtract(Duration(days: random.nextInt(30)))
+//                 .toIso8601String(),
+//             SHIPPING_ADDRESS: shippingAddress,
+//             CUSTOMER_NAME: customerName,
+//             PAYMENT_METHOD:
+//                 paymentMethods[random.nextInt(paymentMethods.length)],
+//             RP_ORDER_ID: null,
+//             RP_PAYMENT_ID: null,
+//             RP_SIGNATURE: null,
+//             TOTAL_QTY: totalQty,
+//             TOTAL_AMOUNT: totalAmount,
+//             LATITUDE: latitude,
+//             LONGITUDE: longitude,
+//           });
+//
+//           // Insert related ORDER_ITEMS
+//           for (final item in orderItems) {
+//             await db.insert(ORDER_ITEMS, {ORDERID: orderId, ...item});
+//           }
+//         }
+//
+//         // Bulk insert suppliers
+//         for (int i = 1; i <= 100; i++) {
+//           await db.insert(SUPPLIERS, {
+//             SUPPLIER_NAME: 'Supplier $i',
+//             CONTACT: 9000000000 + i,
+//             IS_DELETED: 0,
+//           });
+//         }
+//
+//         // Bulk insert purchase orders with items (SR-based and consistent, with qty >1 per product line item)
+//         final productsList = await db.query(PRODUCTS, limit: 100);
+//
+//         for (int i = 1; i <= 10; i++) {
+//           // Reduced from 50 to 10 for lighter dummy data
+//           final supplierId = (i % 100) + 1;
+//           final orderDate = DateTime.now().subtract(
+//             Duration(days: random.nextInt(90)),
+//           );
+//           final isReceived = random.nextInt(10) > 6 ? 1 : 0;
+//           final isPartiallyReceived = isReceived == 0 && random.nextBool()
+//               ? 1
+//               : 0;
+//
+//           final itemCount = random.nextInt(3) + 2; // 2-4 products per PO
+//           final selectedProducts = List.generate(
+//             itemCount,
+//             (_) => productsList[random.nextInt(productsList.length)],
+//           );
+//
+//           // Compute totalQty and prepare line items
+//           int totalQty = 0;
+//           double totalCost = 0.0;
+//           List<Map<String, dynamic>> lineItems = [];
+//
+//           for (var product in selectedProducts) {
+//             final productId = product[PRODUCT_ID] as int;
+//             final qty =
+//                 random.nextInt(3) + 1; // qty >1 possible for single product
+//             final price = product[PRICE] as double;
+//             final double variation = random.nextBool() ? 0.8 : 1.2;
+//             final double costPerUnit = price * variation * 0.7;
+//
+//             totalQty += qty;
+//             totalCost += costPerUnit * qty;
+//
+//             // Add line item (single row per product with full qty, no SR yet)
+//             lineItems.add({
+//               'product_id': productId,
+//               'qty': qty,
+//               'cost_per_unit': costPerUnit,
+//             });
+//           }
+//
+//           final poId = await db.insert(PURCHASE_ORDERS, {
+//             IS_RECEIVED: isReceived,
+//             SUPPLIER_ID: supplierId,
+//             ORDER_DATE: orderDate.toIso8601String(),
+//             TOTAL_QTY: totalQty,
+//             TOTAL_COST: totalCost,
+//             IS_PARTIALLY_RECIEVED: isPartiallyReceived,
+//           });
+//
+//           // Insert PO line items (one per product, with full qty, SERIAL_NUMBER null)
+//           for (var lineItem in lineItems) {
+//             final productId = lineItem[PRODUCT_ID] as int;
+//             final qty = lineItem['qty'] as int;
+//             final costPerUnit = lineItem[COST_PER_UNIT] as double;
+//
+//             await db.insert(PURCHASE_ORDER_ITEMS, {
+//               PURCHASE_ORDER_ID: poId,
+//               PRODUCT_ID: productId,
+//               SERIAL_NUMBER:
+//                   null, // No SR for bulk qty; assign per unit on receive
+//               QUANTITY: qty,
+//               COST_PER_UNIT: costPerUnit,
+//               IS_RECEIVED: isReceived,
+//             });
+//
+//             // If fully received, insert individual inventory items with unique SRs
+//             if (isReceived == 1) {
+//               for (int j = 1; j <= qty; j++) {
+//                 final srNo = SRGenerator.generateSR(productId, poId, j);
+//                 await db.insert(INVENTORY_ITEMS, {
+//                  IS_SOLD:0,
+//                   SERIAL_NUMBER: srNo,
+//                   SELLING_PRICE:
+//                       (productsList.firstWhere(
+//                             (p) => p[PRODUCT_ID] == productId,
+//                           )[PRICE]
+//                           as double),
+//                 });
+//               }
+//             }
+//             // Note: For partial receive, you'd need additional logic to split qty and assign SRs to received portion
+//           }
+//         }
+//
+//         // Bulk insert addresses
+//
+//         final count =
+//             Sqflite.firstIntValue(
+//               await db.rawQuery('SELECT COUNT(*) FROM $ADDRESSES'),
+//             ) ??
+//             0;
+//         if (count == 0) {
+//           final random = math.Random();
+//           for (int i = 1; i <= 100; i++) {
+//             final latitude = 8.0 + random.nextDouble() * (37.0 - 8.0);
+//             final longitude = 68.0 + random.nextDouble() * (97.0 - 68.0);
+//             await db.insert(ADDRESSES, {
+//               USERID: i,
+//               FULL_NAME: 'User $i',
+//               PHONE: 9876540000 + i,
+//               ADDRESS: 'Address $i',
+//               CITY: 'City $i',
+//               STATE: 'State $i',
+//               COUNTRY: 'India',
+//               ZIPCODE: 'ZIP $i',
+//               IS_DEFAULT: 1,
+//               LATITUDE: latitude,
+//               LONGITUDE: longitude,
+//             });
+//           }
+//         }
+//
+//         // ---- INSERT DUMMY PROFIT & LOSS TEST DATA ----
+//         print('Inserting profit/loss test data...');
+//
+// // Create purchase order (known cost per SR)
+//         final testPurchaseOrderId = await db.insert(PURCHASE_ORDERS, {
+//           IS_RECEIVED: 1,
+//           SUPPLIER_ID: 1,
+//           ORDER_DATE: '2025-10-20',
+//           TOTAL_QTY: 4,
+//           TOTAL_COST: 1800.0, // Updated total cost
+//           IS_PARTIALLY_RECIEVED: 0,
+//         });
+//
+// // Define test products and costs
+//         final testItems = [
+//           {'product_id': 1, 'qty': 1, 'cost_per_unit': 100.0},
+//           {'product_id': 2, 'qty': 1, 'cost_per_unit': 200.0},
+//           {'product_id': 3, 'qty': 1, 'cost_per_unit': 500.0},
+//           {'product_id': 4, 'qty': 1, 'cost_per_unit': 1000.0},
+//         ];
+//
+// // Insert purchase order items + inventory entries
+//         for (final item in testItems) {
+//           final productId = item['product_id'] as int;
+//           final qty = item['qty'] as int;
+//           final costPerUnit = item['cost_per_unit'] as double;
+//
+//           final srNo = SRGenerator.generateSR(productId, testPurchaseOrderId, 1);
+//
+//           await db.insert(PURCHASE_ORDER_ITEMS, {
+//             PURCHASE_ORDER_ID: testPurchaseOrderId,
+//             PRODUCT_ID: productId,
+//             SERIAL_NUMBER: srNo,
+//             QUANTITY: qty,
+//             COST_PER_UNIT: costPerUnit,
+//             IS_RECEIVED: 1,
+//           });
+//
+//           // FIX: Inventory table has no inventory_quantity column.
+//           // So we insert properly according to table schema.
+//           final invId = await db.insert(INVENTORY, {
+//             PURCHASE_ORDER_ID: testPurchaseOrderId,
+//             PRODUCT_ID: productId,
+//             REMAINING: qty,
+//             SELLING_PRICE: costPerUnit * 1.2,
+//             COST_PER_UNIT: costPerUnit,
+//             IS_READY_FOR_SALE: 1,
+//             PURCHASE_DATE: '2025-10-20',
+//           });
+//
+//           await db.insert(INVENTORY_ITEMS, {
+//             INVENTORY_ID: invId,
+//             SERIAL_NUMBER: srNo,
+//             IS_SOLD: 0,
+//           });
+//         }
+//
+// // PROFIT DAY
+//         final orderProfitId = await db.insert(ORDERS, {
+//           USERID: 1,
+//           ORDER_STATUS: 'Delivered',
+//           ORDER_DATE: '2025-10-21',
+//           SHIPPING_ADDRESS: 'Test Address 1',
+//           CUSTOMER_NAME: 'Profit Customer',
+//           PAYMENT_METHOD: 'Cash on Delivery',
+//           TOTAL_QTY: 2,
+//           TOTAL_AMOUNT: 450.0,
+//           LATITUDE: 10.0,
+//           LONGITUDE: 70.0,
+//         });
+//
+//         await db.insert(ORDER_ITEMS, {
+//           ORDERID: orderProfitId,
+//           PRODUCT_ID: 1,
+//           ITEM_NAME: 'Product 1',
+//           SERIAL_NUMBER: SRGenerator.generateSR(1, testPurchaseOrderId, 1),
+//           ITEM_IMAGE: '/storage/emulated/0/Download/wdr1.jpg',
+//           ITEM_DESCRIPTION: 'Profit case',
+//           ITEM_PRICE: 150.0, // profit
+//           ITEM_QTY: 1,
+//         });
+//         await db.insert(ORDER_ITEMS, {
+//           ORDERID: orderProfitId,
+//           PRODUCT_ID: 2,
+//           ITEM_NAME: 'Product 2',
+//           SERIAL_NUMBER: SRGenerator.generateSR(2, testPurchaseOrderId, 1),
+//           ITEM_IMAGE: '/storage/emulated/0/Download/wdr2.jpg',
+//           ITEM_DESCRIPTION: 'Profit case',
+//           ITEM_PRICE: 300.0, // profit
+//           ITEM_QTY: 1,
+//         });
+//
+// // LOSS DAY
+//         final orderLossId = await db.insert(ORDERS, {
+//           USERID: 1,
+//           ORDER_STATUS: 'Delivered',
+//           ORDER_DATE: '2025-10-22',
+//           SHIPPING_ADDRESS: 'Test Address 2',
+//           CUSTOMER_NAME: 'Loss Customer',
+//           PAYMENT_METHOD: 'UPI',
+//           TOTAL_QTY: 2,
+//           TOTAL_AMOUNT: 1300.0,
+//           LATITUDE: 11.0,
+//           LONGITUDE: 72.0,
+//         });
+//
+//         await db.insert(ORDER_ITEMS, {
+//           ORDERID: orderLossId,
+//           PRODUCT_ID: 3,
+//           ITEM_NAME: 'Product 3',
+//           SERIAL_NUMBER: SRGenerator.generateSR(3, testPurchaseOrderId, 1),
+//           ITEM_IMAGE: '/storage/emulated/0/Download/wd3.jpg',
+//           ITEM_DESCRIPTION: 'Loss case',
+//           ITEM_PRICE: 400.0, // loss
+//           ITEM_QTY: 1,
+//         });
+//         await db.insert(ORDER_ITEMS, {
+//           ORDERID: orderLossId,
+//           PRODUCT_ID: 4,
+//           ITEM_NAME: 'Product 4',
+//           SERIAL_NUMBER: SRGenerator.generateSR(4, testPurchaseOrderId, 1),
+//           ITEM_IMAGE: '/storage/emulated/0/Download/wdr2.jpg',
+//           ITEM_DESCRIPTION: 'Loss case',
+//           ITEM_PRICE: 900.0, // loss
+//           ITEM_QTY: 1,
+//         });
+//
+//         print('✅ Profit/loss test records inserted successfully (SR-wise).');
 
       },
       onOpen: (db) async {
@@ -1007,11 +1077,18 @@ CREATE TABLE $ORDERS (
   Future<int?> insertProduct({required ProductModel product}) async {
     try {
       var db = await database;
-      product.srNo = "SR-${product.insertDate}";
+
       var result = await db.insert(PRODUCTS, product.toMap());
-      if(result != 0) {
-        final inventory =  InventoryItemModel(invQuantity: product.stockQty,productId: result, serialNumber: product.srNo ?? '', sellingPrice: product.price);
-        await insertInventory(inventory);
+      if (result != 0) {
+        for (int i = 1; i <= product.stockQty; i++) {
+          final inventory = InventoryItemModel(
+            productId: result,
+            serialNumber:
+                'SR-$result-INIT-${Uuid().v4().replaceAll('-', '').substring(0, 8)}-$i',
+            sellingPrice: product.price,
+          );
+          await insertInventory(inventory);
+        }
       }
       return result;
     } catch (e) {
@@ -2292,7 +2369,6 @@ CREATE TABLE $ORDERS (
         return {
           STOCK_QTY: result.first[STOCK_QTY],
           SOLD_QTY: result.first[SOLD_QTY],
-
         };
       } else {
         return {};
@@ -2304,7 +2380,9 @@ CREATE TABLE $ORDERS (
   }
 
   //check stock in inventory
-  Future<List<InventoryItemModel>> fetchStockFromInventory(int productID) async {
+  Future<List<InventoryItemModel>> fetchStockFromInventory(
+    int productID,
+  ) async {
     try {
       var db = await database;
       var result = await db.rawQuery(
@@ -2314,7 +2392,7 @@ CREATE TABLE $ORDERS (
         [productID],
       );
       if (result.isNotEmpty) {
-        return result.map((e) => InventoryItemModel.fromMap(e),).toList();
+        return result.map((e) => InventoryItemModel.fromMap(e)).toList();
       } else {
         return [];
       }
@@ -2354,7 +2432,6 @@ CREATE TABLE $ORDERS (
   //   }
   //   return null;
   // }
-
 
   // deduct stock after place order
   Future<int?> deductStock({required int productID, required int qty}) async {
@@ -2398,13 +2475,16 @@ CREATE TABLE $ORDERS (
 
           if (currentInv == null) {
             // No stock in current SR, find next available
-            final nextInvResult = await txn.rawQuery('''
+            final nextInvResult = await txn.rawQuery(
+              '''
               SELECT * FROM $INVENTORY_ITEMS 
               WHERE $PRODUCT_ID = ? AND $INVENTORY_QUANTITY > 0 
               AND $SERIAL_NUMBER != ? 
               ORDER BY $INVENTORY_ITEM_ID ASC 
               LIMIT 1
-            ''', [productID, activeSr]);
+            ''',
+              [productID, activeSr],
+            );
 
             if (nextInvResult.isEmpty) {
               // No more available inventory
@@ -2454,10 +2534,7 @@ CREATE TABLE $ORDERS (
 
           await txn.update(
             PRODUCTS,
-            {
-              SOLD_QTY: newSoldQty,
-              STOCK_QTY: newStockQty,
-            },
+            {SOLD_QTY: newSoldQty, STOCK_QTY: newStockQty},
             where: '$PRODUCT_ID = ?',
             whereArgs: [productID],
           );
@@ -2474,15 +2551,20 @@ CREATE TABLE $ORDERS (
   }
 
   // Helper method to get total stock from inventory
-  Future<int> _getTotalStockFromInventory(Transaction txn, int productID) async {
-    final result = await txn.rawQuery('''
+  Future<int> _getTotalStockFromInventory(
+    Transaction txn,
+    int productID,
+  ) async {
+    final result = await txn.rawQuery(
+      '''
       SELECT SUM($INVENTORY_QUANTITY) as total 
       FROM $INVENTORY_ITEMS 
       WHERE $PRODUCT_ID = ? AND $INVENTORY_QUANTITY > 0
-    ''', [productID]);
+    ''',
+      [productID],
+    );
     return Sqflite.firstIntValue(result) ?? 0;
   }
-
 
   // insert order items
   Future<int?> insertOrderItem(OrderItemModel orderItem) async {
@@ -2735,30 +2817,6 @@ CREATE TABLE $ORDERS (
     }
   }
 
-  // fetch PO items by PO id
-  Future<List<PurchaseOrderItemModel>> getPOItemsByPOID(int poID) async {
-    try {
-      final db = await database;
-      // JOIN purchase_order_items with products
-      final result = await db.rawQuery(
-        '''
-      SELECT i.*, p.$PRODUCT_NAME 
-      FROM $PURCHASE_ORDER_ITEMS i
-      INNER JOIN $PRODUCTS p 
-        ON i.$PRODUCT_ID = p.$PRODUCT_ID
-      WHERE i.$PURCHASE_ORDER_ID = ? AND $IS_RECEIVED =?
-    ''',
-        [poID,0],
-      );
-      return result
-          .map((poItem) => PurchaseOrderItemModel.fromMap(poItem))
-          .toList();
-    } catch (e) {
-      log("error (getPOItemsByPOID): ${e.toString()}");
-      return [];
-    }
-  }
-
   // get all POs
   Future<List<PurchaseOrderModel>> getPOs({
     int? isReceived,
@@ -2796,7 +2854,7 @@ CREATE TABLE $ORDERS (
         PURCHASE_ORDER_ITEMS,
         poItem.toMap(),
         where: "$PURCHASE_ITEM_ID = ?",
-        whereArgs: [poItem.id],
+        whereArgs: [poItem.purchaseOrderId],
       );
     } catch (e) {
       log("error (updatePOItem) : ::: : error is ${e.toString()}");
@@ -2804,26 +2862,42 @@ CREATE TABLE $ORDERS (
     }
   }
 
-
-  Future<int> updatePOStatus({required int poID,required int isPartial, required int isReceived}) async {
+  Future<int> updatePOStatus({
+    required int poID,
+    required int isPartial,
+    required int isReceived,
+  }) async {
     try {
       final db = await database;
-      return await db.update(PURCHASE_ORDERS, {IS_RECEIVED:isReceived,IS_PARTIALLY_RECIEVED:isPartial},where: "$PURCHASE_ORDER_ID = ?",whereArgs: [poID]);
+      return await db.update(
+        PURCHASE_ORDERS,
+        {IS_RECEIVED: isReceived, IS_PARTIALLY_RECIEVED: isPartial},
+        where: "$PURCHASE_ORDER_ID = ?",
+        whereArgs: [poID],
+      );
     } catch (e) {
       log("error (updatePOStatus) : ::: : error is ${e.toString()}");
       return 0;
     }
   }
 
-
   /// update product selling price and quantity
-  Future<int> updateProductStock({required int productID, required double sellingPrice, required int quantity}) async {
+  Future<int> updateProductStock({
+    required int productID,
+    required double sellingPrice,
+    required int quantity,
+  }) async {
     try {
       final db = await database;
       final product = await getProductByID(productID: productID);
-      if(product != null) {
-      int newQuantity = product[STOCK_QTY] + quantity;
-      return await db.update(PRODUCTS, {PRICE:sellingPrice,STOCK_QTY:newQuantity},where: "$PRODUCT_ID = ?",whereArgs: [productID]);
+      if (product != null) {
+        int newQuantity = product[STOCK_QTY] + quantity;
+        return await db.update(
+          PRODUCTS,
+          {PRICE: sellingPrice, STOCK_QTY: newQuantity},
+          where: "$PRODUCT_ID = ?",
+          whereArgs: [productID],
+        );
       }
       return 0;
     } catch (e) {
@@ -2832,41 +2906,41 @@ CREATE TABLE $ORDERS (
     }
   }
 
+  /// get report for profit and loss
   Future<List<ProfitLossData>> getProfitLossReport(
-      String startDate,
-      String endDate,
-      ) async {
+    String startDate,
+    String endDate,
+  ) async {
     final db = await database;
 
-    final result = await db.rawQuery('''
-    WITH ProductCost AS (
-      SELECT 
-        $PRODUCT_ID,
-        AVG($COST_PER_UNIT) AS avg_cost
-      FROM $PURCHASE_ORDER_ITEMS
-      GROUP BY $PRODUCT_ID
-    )
+    final result = await db.rawQuery(
+      '''
     SELECT 
       DATE(o.$ORDER_DATE) AS date,
       SUM(oi.$ITEM_PRICE * oi.$ITEM_QTY) AS total_sales,
-      SUM(pc.avg_cost * oi.$ITEM_QTY) AS total_cost,
+      SUM(poi.$COST_PER_UNIT * oi.$ITEM_QTY) AS total_cost,
       CASE 
-        WHEN (SUM(oi.$ITEM_PRICE * oi.$ITEM_QTY) - SUM(pc.avg_cost * oi.$ITEM_QTY)) >= 0 
-          THEN (SUM(oi.$ITEM_PRICE * oi.$ITEM_QTY) - SUM(pc.avg_cost * oi.$ITEM_QTY))
+        WHEN (SUM(oi.$ITEM_PRICE * oi.$ITEM_QTY) - SUM(poi.$COST_PER_UNIT * oi.$ITEM_QTY)) >= 0 
+          THEN (SUM(oi.$ITEM_PRICE * oi.$ITEM_QTY) - SUM(poi.$COST_PER_UNIT * oi.$ITEM_QTY))
         ELSE 0
       END AS profit,
       CASE 
-        WHEN (SUM(oi.$ITEM_PRICE * oi.$ITEM_QTY) - SUM(pc.avg_cost * oi.$ITEM_QTY)) < 0 
-          THEN ABS(SUM(oi.$ITEM_PRICE * oi.$ITEM_QTY) - SUM(pc.avg_cost * oi.$ITEM_QTY))
+        WHEN (SUM(oi.$ITEM_PRICE * oi.$ITEM_QTY) - SUM(poi.$COST_PER_UNIT * oi.$ITEM_QTY)) < 0 
+          THEN ABS(SUM(oi.$ITEM_PRICE * oi.$ITEM_QTY) - SUM(poi.$COST_PER_UNIT * oi.$ITEM_QTY))
         ELSE 0
       END AS loss
     FROM $ORDER_ITEMS oi
     JOIN $ORDERS o ON o.$ORDERID = oi.$ORDERID
-    LEFT JOIN ProductCost pc ON pc.$PRODUCT_ID = oi.$PRODUCT_ID
+    LEFT JOIN $PURCHASE_ORDER_ITEMS poi 
+      ON poi.$PRODUCT_ID = oi.$PRODUCT_ID 
+      AND poi.$SERIAL_NUMBER = oi.$SERIAL_NUMBER
     WHERE DATE(o.$ORDER_DATE) BETWEEN ? AND ?
     GROUP BY DATE(o.$ORDER_DATE)
     ORDER BY DATE(o.$ORDER_DATE)
-  ''', [startDate, endDate]);
+  ''',
+      [startDate, endDate],
+    );
+    print(result.toString());
 
     return result.map((e) {
       return ProfitLossData(
@@ -2877,25 +2951,28 @@ CREATE TABLE $ORDERS (
     }).toList();
   }
 
-
-
-
   Future<List<ProductModel>> getTop5RevenueProducts() async {
     final db = await database;
 
     final result = await db.rawQuery('''
     SELECT 
       p.*,
-      SUM(oi.$ITEM_PRICE * oi.$ITEM_QTY) AS total_revenue
+      SUM((oi.$ITEM_PRICE - po.$COST_PER_UNIT) * oi.$ITEM_QTY) AS total_revenue
     FROM $ORDER_ITEMS oi
-    JOIN $PRODUCTS p ON p.$PRODUCT_ID = oi.$PRODUCT_ID
     JOIN $ORDERS o ON o.$ORDERID = oi.$ORDERID
+    JOIN $PURCHASE_ORDER_ITEMS po ON po.$SERIAL_NUMBER = oi.$SERIAL_NUMBER
+    JOIN $PRODUCTS p ON p.$PRODUCT_ID = oi.$PRODUCT_ID
     GROUP BY p.$PRODUCT_ID
     ORDER BY total_revenue DESC
     LIMIT 5
   ''');
-
-    return result.map((e) => ProductModel.fromMap(e)).toList();
+    log("result : : :: : :: : : : :$result");
+    return result.map((e) {
+      final product = ProductModel.fromMap(e);
+      product.totalRevenue =
+          double.tryParse(e['total_revenue'].toString()) ?? 0.0;
+      return product;
+    }).toList();
   }
 
   Future<List<ProductModel>> getTop5LossProducts() async {
@@ -2923,9 +3000,12 @@ CREATE TABLE $ORDERS (
     LIMIT 5
   ''');
 
-    return result.map((e) => ProductModel.fromMap(e)).toList();
+    return result.map((e) {
+      final product = ProductModel.fromMap(e);
+      product.totalLoss = double.tryParse(e['total_loss'].toString()) ?? 0.0;
+      return product;
+    }).toList();
   }
-
 
   // add item to inventory
   Future<int> insertInventory(InventoryItemModel inventory) async {
@@ -2937,6 +3017,4 @@ CREATE TABLE $ORDERS (
       return 0;
     }
   }
-
-
 }

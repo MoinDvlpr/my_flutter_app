@@ -31,138 +31,200 @@ class CreatePoScreen extends StatelessWidget {
       appBar: AppBar(
         title: Text('${poID == null ? 'Create' : 'Edit'} Purchase Order'),
       ),
-
       body: SingleChildScrollView(
         child: Obx(
-          () => Form(
+              () => Form(
             key: _formKey,
             child: Padding(
               padding: const EdgeInsets.all(12.0),
               child: Column(
                 children: [
-                  /// -----------------------------
-                  /// Supplier Selection
-                  /// -----------------------------
-                  GlobalTextFormField(
-                    readOnly: true,
-                    controller: poController.supplierNameController,
-                    onTap: () => _openSupplierSelector(),
-                    label: 'Select Supplier',
-                    validator: (value) =>
-                        (value == null || value.trim().isEmpty)
-                        ? 'supplier is required'
-                        : null,
-                  ),
+                  /// Header Section: Supplier, Date, Order Info
+                  _buildHeaderSection(),
 
-                  /// -----------------------------
-                  /// Product Selection
-                  /// -----------------------------
-                  GlobalTextFormField(
-                    readOnly: true,
-                    controller: poController.itemNameController,
-                    onTap: () => _openProductSelector(),
-                    label: 'Select Product',
-                    validator: (value) =>
-                        (value == null || value.trim().isEmpty)
-                        ? 'product is required'
-                        : null,
-                  ),
+                  const SizedBox(height: 24),
 
-                  /// -----------------------------
-                  /// Cost & Quantity Fields
-                  /// -----------------------------
-                  GlobalTextFormField(
-                    label: "Cost price",
-                    controller: poController.itemCostPriceController,
-                    textInputType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
-                    ],
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return "this field is required";
-                      } else if (double.parse(value) <= 0) {
-                        return 'price must be greater than 0';
-                      }
-                      return null;
-                    },
-                  ),
-                  GlobalTextFormField(
-                    label: "Stock qty",
-                    controller: poController.itemQuantityController,
-                    textInputType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
-                    ],
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return "this field is required";
-                      } else if (int.parse(value) <= 0) {
-                        return 'stock must be greater than 0';
-                      }
-                      return null;
-                    },
-                  ),
+                  /// Product Selection & Details Section
+                  _buildProductDetailsSection(),
 
-                  const SizedBox(height: 20),
 
-                  /// -----------------------------
-                  /// Add Product Button
-                  /// -----------------------------
+
+                  const SizedBox(height: 24),
+
+
                   GlobalAppSubmitBtn(
-                    title: 'Add product',
+                    title: '${poID == null ? 'Create' : 'Save'} order',
                     onTap: () {
-                      if (_formKey.currentState!.validate()) {
-                        poController.addToList();
-                      } else {
-                        AppSnackbars.error('Failed', 'Failed to add product');
-                      }
+                      poController.addOREditPO(poID: poID);
                     },
                   ),
-
-                  const SizedBox(height: 10),
-
-                  /// -----------------------------
-                  /// Supplier Label
-                  /// -----------------------------
-                  _buildSupplierLabel(),
-
-                  /// -----------------------------
-                  /// Product Table Header
-                  /// -----------------------------
-                  _buildTableHeader(),
-
-                  /// -----------------------------
-                  /// Product List
-                  /// -----------------------------
-                  _buildProductList(),
-
-                  /// -----------------------------
-                  /// Summary Row
-                  /// -----------------------------
-                  _buildSummary(),
-
-                  const SizedBox(height: 16),
-
-                  /// -----------------------------
-                  /// Create Order Button
-                  /// -----------------------------
-                  Visibility(
-                    visible: poController.items.isNotEmpty,
-                    child: GlobalAppSubmitBtn(
-                      title: '${poID == null ? 'Create' : 'Save'} order',
-                      onTap: () {
-                        poController.addOREditPO(poID: poID);
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(height: 100),
                 ],
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  /// Header Section with Supplier & Date at top
+  Widget _buildHeaderSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Order Information',
+            style: AppTextStyle.semiBoldTextstyle.copyWith(fontSize: 14),
+          ),
+          const SizedBox(height: 12),
+
+          /// Supplier Selection
+          GlobalTextFormField(
+            readOnly: true,
+            controller: poController.supplierNameController,
+            onTap: () => _openSupplierSelector(),
+            label: 'Select Supplier',
+            validator: (value) =>
+            (value == null || value.trim().isEmpty)
+                ? 'supplier is required'
+                : null,
+          ),
+          const SizedBox(height: 12),
+
+          /// Date Picker
+          GestureDetector(
+            onTap: () async {
+              DateTime? pickedDate = await showDatePicker(
+                context: Get.context!,
+                initialDate: poController.selectedDate.value ?? DateTime.now(),
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2100),
+              );
+              if (pickedDate != null) {
+                poController.selectedDate.value = pickedDate;
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade400),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_today, size: 18, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Order Date',
+                        style: AppTextStyle.regularTextstyle
+                            .copyWith(fontSize: 12, color: Colors.grey),
+                      ),
+                      Text(
+                        poController.selectedDate.value == null
+                            ? 'dd / mm / yyyy'
+                            : DateFormator.formateDate(poController.selectedDate.value!),
+                        style: AppTextStyle.semiBoldTextstyle.copyWith(
+                          fontSize: 14,
+                          color: poController.selectedDate.value == null
+                              ? Colors.grey
+                              : primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Product Details Section
+  Widget _buildProductDetailsSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Product Details',
+            style: AppTextStyle.semiBoldTextstyle.copyWith(fontSize: 14),
+          ),
+          const SizedBox(height: 12),
+
+          /// Product Selection
+          GlobalTextFormField(
+            readOnly: true,
+            controller: poController.itemNameController,
+            onTap: () => _openProductSelector(),
+            label: 'Select Product',
+            validator: (value) =>
+            (value == null || value.trim().isEmpty)
+                ? 'product is required'
+                : null,
+          ),
+          const SizedBox(height: 12),
+
+          /// Cost & Quantity in Row
+          Row(
+            children: [
+              Expanded(
+                child: GlobalTextFormField(
+                  label: "Cost Price",
+                  controller: poController.itemCostPriceController,
+                  textInputType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+                  ],
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return "required";
+                    } else if (double.parse(value) <= 0) {
+                      return 'must be > 0';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GlobalTextFormField(
+                  label: "Stock Qty",
+                  controller: poController.itemQuantityController,
+                  textInputType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+                  ],
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return "required";
+                    } else if (int.parse(value) <= 0) {
+                      return 'must be > 0';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -201,7 +263,7 @@ class CreatePoScreen extends StatelessWidget {
         isLoading: productController.isLoading,
         itemLabel: (product) => product.productName,
         onItemSelected: (product) {
-          poController.itemID = product.productId;
+          poController.productID = product.productId;
           poController.itemNameController.text = product.productName;
         },
         searchController: productController.dropdownSearchController,
@@ -214,206 +276,5 @@ class CreatePoScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSupplierLabel() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 12.0),
-      child: Row(
-        children: [
-          // Supplier Name Section
-          Expanded(
-            child: RichText(
-              text: TextSpan(
-                children: [
-                  TextSpan(
-                    text: "Supplier : ",
-                    style: AppTextStyle.semiBoldTextstyle.copyWith(
-                      fontSize: 14,
-                      color: Colors.black,
-                    ),
-                  ),
-                  TextSpan(
-                    text: poController.supplierName.isEmpty
-                        ? "Not selected"
-                        : poController.supplierName.value,
-                    style: AppTextStyle.regularTextstyle.copyWith(
-                      fontSize: 14,
-                      color: poController.supplierName.isEmpty
-                          ? Colors.grey
-                          : primary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
 
-          // Date Section + Calendar Icon
-          InkWell(
-            onTap: () async {
-              DateTime? pickedDate = await showDatePicker(
-                context: Get.context!,
-                initialDate: poController.selectedDate.value ?? DateTime.now(),
-                firstDate: DateTime(2000),
-                lastDate: DateTime(2100),
-              );
-              if (pickedDate != null) {
-                poController.selectedDate.value = pickedDate;
-              }
-            },
-            child: Row(
-              children: [
-                RichText(
-                  text: TextSpan(
-                    children: [
-                      TextSpan(
-                        text: "Date : ",
-                        style: AppTextStyle.semiBoldTextstyle.copyWith(
-                          fontSize: 14,
-                          color: Colors.black,
-                        ),
-                      ),
-                      TextSpan(
-                        text: poController.selectedDate.value == null
-                            ? "dd / mm / yyyy"
-                            : DateFormator.formateDate(poController.selectedDate.value!),
-                        style: AppTextStyle.regularTextstyle.copyWith(
-                          fontSize: 14,
-                          color: poController.selectedDate.value == null
-                              ? Colors.grey
-                              : primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 4),
-                const Icon(Icons.calendar_today, size: 18, color: Colors.grey),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ----------------------------------------------------------
-  // Table Header
-  // ----------------------------------------------------------
-  Widget _buildTableHeader() {
-    return Container(
-      padding: const EdgeInsets.all(12.0),
-      child: Row(
-        children: [
-          _headerCell('Item Name', flex: 2),
-          _headerCell('Qty'),
-          _headerCell('Price'),
-          _headerCell('Total'),
-          _headerCell('Remove'),
-        ],
-      ),
-    );
-  }
-
-  Widget _headerCell(String title, {int flex = 1}) {
-    return Expanded(
-      flex: flex,
-      child: Text(
-        title,
-        textAlign: TextAlign.center,
-        style: AppTextStyle.semiBoldTextstyle.copyWith(fontSize: 12),
-      ),
-    );
-  }
-
-  // ----------------------------------------------------------
-  // Product List
-  // ----------------------------------------------------------
-  Widget _buildProductList() {
-    if (poController.items.isEmpty) {
-      return const Center(child: Text('Feeling too light'));
-    }
-
-    return ListView.builder(
-      itemCount: poController.items.length,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemBuilder: (context, index) {
-        final item = poController.items[index];
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          elevation: 0,
-          color: bg,
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _dataCell(item.itemName ?? 'undefined', flex: 2),
-                _dataCell(item.quantity.toString()),
-                _dataCell(item.costPerUnit.toString()),
-                _dataCell((item.quantity * item.costPerUnit).toString()),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => poController.removeItem(index),
-                    child: Icon(Icons.delete_outline, color: primary),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _dataCell(String text, {int flex = 1}) {
-    return Expanded(
-      flex: flex,
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: AppTextStyle.regularTextstyle.copyWith(fontSize: 12),
-      ),
-    );
-  }
-
-  // ----------------------------------------------------------
-  // Summary Section
-  // ----------------------------------------------------------
-  Widget _buildSummary() {
-    return Visibility(
-      visible: poController.items.isNotEmpty,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        padding: const EdgeInsets.all(16.0),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.shade300),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _summaryCell('Total'),
-            _summaryCell('Qty = ${poController.totalQuantity.value}'),
-            _summaryCell(
-              'Amount = ${poController.totalCost.value.toStringAsFixed(0)}',
-              flex: 2,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _summaryCell(String text, {int flex = 1}) {
-    return Expanded(
-      flex: flex,
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        style: AppTextStyle.semiBoldTextstyle.copyWith(fontSize: 12),
-      ),
-    );
-  }
 }

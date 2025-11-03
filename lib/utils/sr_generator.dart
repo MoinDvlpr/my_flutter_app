@@ -1,6 +1,6 @@
 import 'package:uuid/uuid.dart';
 class SRGenerator {
-  static String generateSR(int productId,int poID) {
+  static String generateSR(int productId,int poID,int no) {
     // Validate that productId is an integer
     if (productId < 0) {
       throw ArgumentError('Product ID must be a non-negative integer');
@@ -10,6 +10,6 @@ class SRGenerator {
     String poidStr = poID.toString();
     // Generate a UUID and take first 8 chars for brevity
     String uniquePart = const Uuid().v4().replaceAll('-', '').substring(0, 8);
-    return 'SR-$pidStr-$poidStr-$uniquePart';
+    return 'SR-$pidStr-$poidStr-$uniquePart-$no';
   }
 }

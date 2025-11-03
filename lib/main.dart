@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -11,10 +13,16 @@ import 'screens/customer/home/home_screen.dart';
 import 'utils/app_colors.dart';
 
 Future<void> main() async {
+
+  log(":::: :::: :::: :::: ::: ::: ::: ::: main called");
   WidgetsFlutterBinding.ensureInitialized();
+  log(":::: :::: :::: :::: ::: ::: ::: :::WidgetsFlutterBinding.ensureInitialized() called");
   await DatabaseHelper.instance.database;
+  log(":::: :::: :::: :::: ::: ::: ::: :::DatabaseHelper.instance.database called");
   await GetStorage.init();
+  log(":::: :::: :::: :::: ::: ::: ::: :::GetStorage.init() called");
   await PermissionHandler.requestPermission();
+  log(":::: :::: :::: :::: ::: ::: ::: :::PermissionHandler.requestPermission() called");
   runApp(const MyApp());
 }
 

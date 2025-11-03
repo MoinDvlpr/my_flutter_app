@@ -23,8 +23,6 @@ class PurchaseOrderController extends GetxController
             state.lastPageIsEmpty ? null : state.nextIntPageKey,
         fetchPage: (pageKey) => fetchAllReadyForReceivePOs(pageKey: pageKey),
       );
-
-
   final PagingController<int, PurchaseOrderModel> pagingControllerForReceived =
   PagingController<int, PurchaseOrderModel>(
     // Start with page 1
@@ -65,39 +63,53 @@ class PurchaseOrderController extends GetxController
   Future<void> fetchAllPOItemsByPOID(int poID) async {
     try {
       _clearPricingFields();
-      final orderItems = await DatabaseHelper.instance.getPOItemsByPOID(poID);
+      // final orderItems = await DatabaseHelper.instance.getPOItemsByPOID(poID);
+      int length = 0;
+      // for(var item in orderItems) {
+        // length += item.quantity;
+      // }
       costPriceController = List.generate(
-        orderItems.length,
+        length,
         (index) => TextEditingController(),
       );
       marketPriceController = List.generate(
-        orderItems.length,
+        length,
         (index) => TextEditingController(),
       );
       sellingPriceController = List.generate(
-        orderItems.length,
+        length,
         (index) => TextEditingController(),
       );
       confirmPriceController = List.generate(
-        orderItems.length,
+        length,
             (index) => TextEditingController(),
       );
 
-      for (int i = 0; i < orderItems.length; i++) {
-        var item = orderItems[i];
-        selectedDiscountGroup[i] = 5;
-        costPriceController[i].text = item.costPerUnit.toString();
-        item.marketPrice = await fetchMarketPriceOfProduct(item.productId);
-        marketPriceController[i].text = item.marketPrice.toString();
+      // for (var item in orderItems) {
+      //   final double marketPrice = await fetchMarketPriceOfProduct(item.productId);
+        // for(int i = 1; i <= item.quantity; i++){
+          // String sr = SRGenerator.generateSR(item.productId, poID, i);
 
-        if (item.srNo == null) {
-          item.srNo = SRGenerator.generateSR(item.productId, poID);
-          await DatabaseHelper.instance.updatePOItem(item);
-        }
+          // Create a new copy of the item with unique serial number
+          // PurchaseOrderItemModel newItem = item.copyWith(srNo: sr);
 
-        calculateSellingPrice(autoFill: true, index: i);
-      }
-      poItems.assignAll(orderItems);
+
+          // selectedDiscountGroup[i-1] = 5;
+          // costPriceController[i-1].text = newItem.costPerUnit.toString();
+
+          // Fetch market price and update the new item
+          // newItem.marketPrice = marketPrice;
+          // marketPriceController[i-1].text = newItem.marketPrice.toString();
+
+          // Add the new item (not the original)
+          // poItems.add(newItem);
+
+
+          // calculateSellingPrice(autoFill: true, index: i-1);
+        // }
+      // }
+
+
     } catch (e) {
       log("error (fetchAllPOItemsByPOID) ::: :::: :::: ${e.toString()}");
     }
@@ -112,75 +124,36 @@ class PurchaseOrderController extends GetxController
   final itemNameController = TextEditingController();
   final itemCostPriceController = TextEditingController();
   final itemQuantityController = TextEditingController();
-  int? itemID;
+  int? productID;
   int? supplierID;
   final selectedDate = Rxn<DateTime>();
   RxString supplierName = "".obs;
 
-  /// add to list
-  addToList() {
-    int quantity = int.parse(itemQuantityController.text.toString());
-    String productName = itemNameController.text.trim();
-    double costPrice = double.parse(itemCostPriceController.text.toString());
-
-    if (itemID != null) {
-      /// check for duplicate
-      int index = items.indexWhere((element) => element.productId == itemID);
-      if (index == -1) {
-        var poItem = PurchaseOrderItemModel(
-          productId: itemID!,
-          itemName: productName,
-          costPerUnit: costPrice,
-          quantity: quantity,
-          isReceived: 0,
-        );
-        items.add(poItem);
-      } else {
-        items[index].quantity += quantity;
-        items[index].costPerUnit = costPrice;
-      }
-    }
-    calculateTotal();
-    clearControllers();
-  }
-
-  /// remove item
-  removeItem(int index) {
-    items.removeAt(index);
-    calculateTotal();
-  }
-
-  /// calculate totals
-  void calculateTotal() {
-    totalCost.value = 0.0;
-    totalQuantity.value = 0;
-    for (var item in items) {
-      int quantity = item.quantity;
-      totalQuantity.value += quantity;
-      totalCost.value += item.costPerUnit * quantity;
-    }
-  }
 
   /// loading var
   RxBool isLoading = false.obs;
   /// add to database
   Future<void> addOREditPO({int? poID, int isReceived = 0}) async {
     try {
+      if(productID == null) return;
       if (supplierID != null) {
         isLoading.value = true;
         if (poID == null) {
+          if(productID == null) return;
           final po = PurchaseOrderModel(
             supplierId: supplierID!,
             isReceived: isReceived,
+            productID: productID!,
+            costPerUnit: double.parse(itemCostPriceController.text.toString()) ,
             orderDate: selectedDate.value ?? DateTime.now(),
-            totalQty: totalQuantity.value,
-            totalCost: totalCost.value,
+            totalQty: int.parse(itemQuantityController.text.toString()),
 
+            totalCost: totalCost.value,
             isPartiallyReceived: 0
           );
           final result = await DatabaseHelper.instance.insertPO(po);
           if (result != 0) {
-            await addItemsToDB(result);
+
             pagingController.refresh();
             isLoading.value = false;
             Get.back();
@@ -195,11 +168,12 @@ class PurchaseOrderController extends GetxController
           final po = PurchaseOrderModel(
             id: poID,
             isReceived: isReceived,
+            productID: productID!
+            ,costPerUnit: double.parse(itemCostPriceController.text.toString()),
             supplierId: supplierID!,
             orderDate: selectedDate.value ?? DateTime.now(),
             totalQty: totalQuantity.value,
             totalCost: totalCost.value,
-
             isPartiallyReceived: 0,
           );
 
@@ -226,24 +200,13 @@ class PurchaseOrderController extends GetxController
   Future<void> updatePOItems() async {
     try {
       for (var item in poItems) {
-        await DatabaseHelper.instance.updatePOItem(item);
+        // await DatabaseHelper.instance.updatePOItem(item);
       }
     } catch (e) {
       log("error (updatePOItems) :::: ::: ::: ${e.toString()} ");
     }
   }
 
-  /// add order items
-  Future<void> addItemsToDB(int poID) async {
-    try {
-      for (PurchaseOrderItemModel item in items) {
-        item.purchaseOrderId = poID;
-        await DatabaseHelper.instance.insertPOrderItem(item);
-      }
-    } catch (e) {
-      log("error (addItemsToDB) :::: ::: ::: ${e.toString()} ");
-    }
-  }
 
   /// fill purchase order for edit
   Future<void> fillDataForEdit(
@@ -254,7 +217,7 @@ class PurchaseOrderController extends GetxController
     totalCost.value = po.totalCost;
     totalQuantity.value = po.totalQty;
     selectedDate.value = po.orderDate;
-    final poItems = await DatabaseHelper.instance.getPOItemsByPOID(po.id!);
+    // final poItems = await DatabaseHelper.instance.getPOItemsByPOID(po.id!);
     items.assignAll(poItems);
   }
 
@@ -580,7 +543,7 @@ class PurchaseOrderController extends GetxController
 
   /// clear controller
   clearControllers() {
-    itemID = null;
+    productID = null;
     selectedDate.value = DateTime.now();
     itemNameController.clear();
     itemQuantityController.clear();
@@ -631,7 +594,6 @@ class PurchaseOrderController extends GetxController
 
         // Create inventory model
         final modelData = InventoryItemModel(
-          invQuantity: item.quantity,
 
           productId: item.productId,
           serialNumber: item.srNo!,
@@ -647,10 +609,10 @@ class PurchaseOrderController extends GetxController
         );
 
         item.isReceived = 1;
-        final result = await db.updatePOItem(item);
-
-
-        if (result > 0) processedCount++;
+        // final result = await db.updatePOItem(item);
+        //
+        //
+        // if (result > 0) processedCount++;
 
       }
 

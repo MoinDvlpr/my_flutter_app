@@ -109,6 +109,17 @@ const String ITEM_IMAGE = "item_image";
 const String ITEM_DESCRIPTION = "item_description";
 const String ITEM_PRICE = "item_price";
 const String ITEM_QTY = "item_quantity";
+const String IS_SOLD = "is_sold";
+const String IS_READY_FOR_SALE = "is_ready_for_sale";
+
+// NEW TABLE INTRODUCE INVENTORY
+const String INVENTORY = "inventory";
+const String INVENTORY_ID = "inventory_id";
+const String REMAINING = "remaining";
+const String PURCHASE_DATE = "purchase_date";
+
+
+
 // const String CATEGORY_NAME = "";
 
 // Table: Suppliers

@@ -11,6 +11,7 @@ import '../../../model/category_model.dart';
 import '../../../model/product_model.dart';
 import '../../../utils/app_colors.dart';
 import '../../../utils/app_textstyles.dart';
+import '../../../utils/debouncer.dart';
 import '../../../widgets/appbar_with_cart.dart';
 import 'product_details_screen.dart';
 
@@ -19,6 +20,7 @@ class UserProductsScreen extends StatelessWidget {
 
   final productController = Get.find<ProductController>();
   final categoryController = Get.find<CategoryController>();
+  final Debouncer _debouncer = Debouncer(delay: Duration(milliseconds: 500));
 
   @override
   Widget build(BuildContext context) {
@@ -150,7 +152,10 @@ class UserProductsScreen extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
       child: TextFormField(
         onChanged: (value) async {
-          await productController.search(value.trim());
+          _debouncer.run(() {
+            productController.search(value.trim());
+          },);
+
         },
         decoration: InputDecoration(
           hintText: 'Search products...',

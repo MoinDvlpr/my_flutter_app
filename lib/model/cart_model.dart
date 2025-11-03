@@ -28,7 +28,6 @@ class CartItemModel {
   factory CartItemModel.fromMap(Map<String, dynamic> map) {
     return CartItemModel(
       cartId: map[CART_ID],
-
       productId: map[PRODUCT_ID],
       productName: map[PRODUCT_NAME],
       productImage: map[PRODUCT_IMAGE],

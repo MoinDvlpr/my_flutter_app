@@ -278,60 +278,57 @@ class CartController extends GetxController {
         final int? orderID = await DatabaseHelper.instance.insertOrder(order);
         if (orderID != null) {
           for (var item in cartItems) {
-            var result = await DatabaseHelper.instance.deductStock(
+            int quantity = cartItemQty[item.productId] ?? 0;
+
+            final inventoryItems = await DatabaseHelper.instance
+                .fetchStockFromInventory(item.productId);
+
+            // for (var inv in inventoryItems) {
+            //   if (inv.invQuantity >= quantity) {
+            //     var orderItem = OrderItemModel(
+            //       orderId: orderID,
+            //       productID: inv.productId,
+            //       srNo: inv.serialNumber,
+            //       itemName: item.productName.trim(),
+            //       itemImage: item.productImage,
+            //       itemPrice: item.discountedPrice,
+            //       itemQty: quantity,
+            //     );
+            //
+            //     var isOrderItemInserted = await DatabaseHelper.instance
+            //         .insertOrderItem(orderItem);
+            //     if (isOrderItemInserted != null && isOrderItemInserted != 0) {
+            //       log(
+            //         "${item.productName} successfully deduct and inserted into table called order items",
+            //       );
+            //     }
+            //   } else if (inv.invQuantity > 0 && inv.invQuantity <= quantity) {
+            //     var orderItem = OrderItemModel(
+            //       orderId: orderID,
+            //       productID: inv.productId,
+            //       srNo: inv.serialNumber,
+            //       itemName: item.productName.trim(),
+            //       itemImage: item.productImage,
+            //       discountPercentage: item.discountPercentage,
+            //       itemPrice: item.discountedPrice,
+            //       itemQty: quantity,
+            //     );
+            //     quantity -= inv.invQuantity;
+            //     cartItemQty[inv.productId] = quantity;
+            //
+            //     var isOrderItemInserted = await DatabaseHelper.instance
+            //         .insertOrderItem(orderItem);
+            //     if (isOrderItemInserted != null && isOrderItemInserted != 0) {
+            //       log(
+            //         "${item.productName} successfully deduct and inserted into table called order items",
+            //       );
+            //     }
+            //   }
+            // }
+            await DatabaseHelper.instance.deductStock(
               productID: item.productId,
-              qty: cartItemQty[item.productId] ?? 1,
+              qty: cartItemQty[item.productId] ?? 0,
             );
-            int quantity = cartItemQty[item.productId] ?? 1;
-
-            final inventoryItems = await DatabaseHelper.instance.fetchStockFromInventory(item.productId);
-            for(var inv in inventoryItems) {
-              if(inv.invQuantity>=item.qty) {
-                var orderItem = OrderItemModel(
-                  orderId: orderID,
-                  productID: inv.productId,
-                  srNo: inv.serialNumber,
-                  itemName: item.productName.trim(),
-                  itemImage: item.productImage,
-                  itemPrice: item.discountedPrice,
-                  itemQty: quantity,
-                );
-                if (result != null && result != 0) {
-                  var isOrderItemInserted = await DatabaseHelper.instance
-                      .insertOrderItem(orderItem);
-                  if (isOrderItemInserted != null && isOrderItemInserted != 0) {
-                    log(
-                      "${item.productName} successfully deduct and inserted into table called order items",
-                    );
-                  }
-                } else {
-                  log("item not deduct");
-                }
-              } else if(inv.invQuantity>0 && inv.invQuantity <= quantity && quantity>0) {
-                quantity -= inv.invQuantity;
-                var orderItem = OrderItemModel(
-                  orderId: orderID,
-                  productID: inv.productId,
-                  srNo: inv.serialNumber,
-                  itemName: item.productName.trim(),
-                  itemImage: item.productImage,
-                  itemPrice: item.discountedPrice,
-                  itemQty: quantity,
-                );
-                if (result != null && result != 0) {
-                  var isOrderItemInserted = await DatabaseHelper.instance
-                      .insertOrderItem(orderItem);
-                  if (isOrderItemInserted != null && isOrderItemInserted != 0) {
-                    log(
-                      "${item.productName} successfully deduct and inserted into table called order items",
-                    );
-                  }
-                } else {
-                  log("item not deduct");
-                }
-              }
-            }
-
           }
           AppSnackbars.success('Success', 'Payment completed and order placed');
           Get.off(() => OrderSuccessScreen());
