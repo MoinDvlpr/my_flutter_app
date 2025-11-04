@@ -36,9 +36,6 @@ class ReceivePOsScreen extends StatelessWidget {
             child: GlobalAppSubmitBtn(
               title: 'Add',
               onTap: () {
-                poController.supplierID = null;
-                poController.supplierName.value = "";
-                poController.supplierNameController.clear();
                 poController.clearControllers();
                 Get.to(() => CreatePoScreen());
               },
@@ -90,7 +87,7 @@ class ReceivePOsScreen extends StatelessWidget {
                               buttonColor: primary.withAlpha(30),
                               textColor: primary,
                               onBtnTap: () async {
-                                Get.to(() => StartReceivingOrder(poID: po.id!));
+                                Get.to(() => StartReceivingOrder(po: po,));
                                 poController.poItems.clear();
                               },
                             ),

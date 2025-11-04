@@ -7,6 +7,7 @@ import '../model/cart_model.dart';
 import '../model/category_model.dart';
 import '../model/discount_group_model.dart';
 import '../model/inventory_item_model.dart';
+import '../model/inventory_model.dart';
 import '../model/order_item_model.dart';
 import '../model/order_model.dart';
 import '../model/product_model.dart';
@@ -103,12 +104,13 @@ CREATE TABLE $FAVORITES (
         await db.execute('''
         CREATE TABLE $CART (
   $CART_ID INTEGER PRIMARY KEY AUTOINCREMENT,
- 
+
   $USERID INTEGER,
   $PRODUCT_ID INTEGER,
   $PRODUCT_QTY INTEGER,
   FOREIGN KEY ($USERID) REFERENCES $USERS($USERID)  ON DELETE CASCADE,
   FOREIGN KEY ($PRODUCT_ID) REFERENCES $PRODUCTS($PRODUCT_ID) ON DELETE CASCADE
+  
 );
         ''');
 
@@ -134,6 +136,8 @@ CREATE TABLE $FAVORITES (
         $IS_PARTIALLY_RECIEVED INTEGER NOT NULL,
         FOREIGN KEY ($SUPPLIER_ID) REFERENCES $SUPPLIERS($SUPPLIER_ID),
         FOREIGN KEY ($PRODUCT_ID) REFERENCES $PRODUCTS($PRODUCT_ID)
+        ON DELETE CASCADE
+    ON UPDATE CASCADE
         );''');
 
 
@@ -141,15 +145,18 @@ CREATE TABLE $FAVORITES (
         CREATE TABLE 
         $INVENTORY (
         $INVENTORY_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        $PURCHASE_ORDER_ID INTEGER NOT NULL,
+        $PURCHASE_ORDER_ID INTEGER,
         $PRODUCT_ID INTEGER NOT NULL,
         $REMAINING INTEGER NOT NULL,
-        $SELLING_PRICE REAL NOT NULL,
+        $SELLING_PRICE REAL,
         $COST_PER_UNIT REAL NOT NULL,
         $IS_READY_FOR_SALE INTEGER NOT NULL,
         $PURCHASE_DATE TEXT NOT NULL,
-        FOREIGN KEY ($PRODUCT_ID) REFERENCES $PRODUCTS($PRODUCT_ID),
+        FOREIGN KEY ($PRODUCT_ID) REFERENCES $PRODUCTS($PRODUCT_ID)ON DELETE CASCADE
+    ON UPDATE CASCADE,
         FOREIGN KEY ($PURCHASE_ORDER_ID) REFERENCES $PURCHASE_ORDERS($PURCHASE_ORDER_ID)
+        ON DELETE CASCADE
+    ON UPDATE CASCADE
         );''');
 
         await db.execute('''
@@ -160,6 +167,8 @@ CREATE TABLE $FAVORITES (
         $SERIAL_NUMBER TEXT NOT NULL UNIQUE,
         $IS_SOLD INTEGER NOT NULL,
         FOREIGN KEY ($INVENTORY_ID) REFERENCES $INVENTORY($INVENTORY_ID)
+        ON DELETE CASCADE
+    ON UPDATE CASCADE
         );''');
 
         await db.execute('''
@@ -206,10 +215,10 @@ CREATE TABLE $ORDERS (
     $ITEM_ID INTEGER PRIMARY KEY AUTOINCREMENT,
     $PRODUCT_ID INTEGER NOT NULL,
     $ORDERID INTEGER,
-    // $ITEM_NAME TEXT NOT NULL,
+    $ITEM_NAME TEXT NOT NULL,
     $SERIAL_NUMBER TEXT NOT NULL,
-    // $ITEM_IMAGE TEXT NOT NULL,
-    // $ITEM_DESCRIPTION TEXT,
+    $ITEM_IMAGE TEXT NOT NULL,
+    $ITEM_DESCRIPTION TEXT,
     $ITEM_PRICE REAL NOT NULL,
     $DISCOUNT_PERCENTAGE REAL,
     FOREIGN KEY ($ORDERID) REFERENCES $ORDERS($ORDERID) 
@@ -297,15 +306,19 @@ CREATE TABLE $ORDERS (
             INSERT_DATE: DateTime.now().toIso8601String(),
             CATEGORY_ID: (i % 5) + 1,
           });
-          // for (int j = 1; j <= 5; j++) {
-          //   // Reduced from 50+i to fixed 5 per product (total ~500 inventory records)
-          //   await db.insert(INVENTORY_ITEMS, {
-          //
-          //     SERIAL_NUMBER:
-          //         'SR-$result-INIT-${Uuid().v4().replaceAll('-', '').substring(0, 8)}-$j',
-          //     SELLING_PRICE: (100 + i).toDouble(),
-          //   });
-          // }
+          final inventory = InventoryModel(productId: result,purchaseDate: DateTime.now(),isReadyForSale: false,costPerUnit: (55 + i).toDouble(),sellingPrice:  (100 + i).toDouble(),remaining: 5);
+          final inventoryResult = await db.insert(INVENTORY, inventory.toMap());
+          if(inventoryResult != 0){
+            for (int j = 1; j <= 5; j++) {
+              // Reduced from 50+i to fixed 5 per product (total ~500 inventory records)
+              await db.insert(INVENTORY_ITEMS, {
+                INVENTORY_ID:inventoryResult,
+                SERIAL_NUMBER:
+                'SR-$result-INIT-${Uuid().v4().replaceAll('-', '').substring(0, 8)}-$j',
+                IS_SOLD:0
+              });
+            }
+          }
         }
 //         // Constants
 //         List<String> statuses = [
@@ -415,13 +428,13 @@ CREATE TABLE $ORDERS (
 //         }
 //
 //         // Bulk insert suppliers
-//         for (int i = 1; i <= 100; i++) {
-//           await db.insert(SUPPLIERS, {
-//             SUPPLIER_NAME: 'Supplier $i',
-//             CONTACT: 9000000000 + i,
-//             IS_DELETED: 0,
-//           });
-//         }
+        for (int i = 1; i <= 100; i++) {
+          await db.insert(SUPPLIERS, {
+            SUPPLIER_NAME: 'Supplier $i',
+            CONTACT: 9000000000 + i,
+            IS_DELETED: 0,
+          });
+        }
 //
 //         // Bulk insert purchase orders with items (SR-based and consistent, with qty >1 per product line item)
 //         final productsList = await db.query(PRODUCTS, limit: 100);
@@ -1080,15 +1093,22 @@ CREATE TABLE $ORDERS (
 
       var result = await db.insert(PRODUCTS, product.toMap());
       if (result != 0) {
-        for (int i = 1; i <= product.stockQty; i++) {
-          final inventory = InventoryItemModel(
-            productId: result,
-            serialNumber:
-                'SR-$result-INIT-${Uuid().v4().replaceAll('-', '').substring(0, 8)}-$i',
-            sellingPrice: product.price,
-          );
-          await insertInventory(inventory);
+          final inventory = InventoryModel(costPerUnit: product.costPrice ?? 0, isReadyForSale: true, remaining: product.stockQty, productId: result, purchaseDate: DateTime.now());
+        final  inventoryResult = await insertInventory(inventory);
+        if(inventoryResult != 0) {
+          for (int i = 1; i <= product.stockQty; i++) {
+            final sr = SRGenerator.generateSR(result, result, i);
+            final item = InventoryItemModel(inventoryID:inventoryResult, isSold: false, productId: result, serialNumber: sr);
+            await insertInventoryItem(item);
+            if(i==1){
+              product.srNo = sr;
+              product.productId = result;
+              await db.update(PRODUCTS, product.toMap(),where: "$PRODUCT_ID = ?",whereArgs: [result]);
+            }
+
+          }
         }
+
       }
       return result;
     } catch (e) {
@@ -2828,14 +2848,16 @@ CREATE TABLE $ORDERS (
 
       final result = await db.rawQuery(
         '''
-      SELECT o.*, s.$SUPPLIER_NAME
-      FROM $PURCHASE_ORDERS o
-      INNER JOIN $SUPPLIERS s 
-        ON o.$SUPPLIER_ID = s.$SUPPLIER_ID
-      ${isReceived != null ? 'WHERE o.$IS_RECEIVED = ?' : ''}
-      ORDER BY o.$PURCHASE_ORDER_ID DESC
-      LIMIT ? OFFSET ?
-    ''',
+    SELECT o.*, s.$SUPPLIER_NAME, p.$PRODUCT_NAME
+    FROM $PURCHASE_ORDERS o
+    INNER JOIN $SUPPLIERS s 
+      ON o.$SUPPLIER_ID = s.$SUPPLIER_ID
+    INNER JOIN $PRODUCTS p
+      ON o.$PRODUCT_ID = p.$PRODUCT_ID
+    ${isReceived != null ? 'WHERE o.$IS_RECEIVED = ?' : ''}
+    ORDER BY o.$PURCHASE_ORDER_ID DESC
+    LIMIT ? OFFSET ?
+  ''',
         [if (isReceived != null) isReceived, limit, offset],
       );
 
@@ -2854,7 +2876,7 @@ CREATE TABLE $ORDERS (
         PURCHASE_ORDER_ITEMS,
         poItem.toMap(),
         where: "$PURCHASE_ITEM_ID = ?",
-        whereArgs: [poItem.purchaseOrderId],
+        whereArgs: [poItem],
       );
     } catch (e) {
       log("error (updatePOItem) : ::: : error is ${e.toString()}");
@@ -3007,13 +3029,24 @@ CREATE TABLE $ORDERS (
     }).toList();
   }
 
-  // add item to inventory
-  Future<int> insertInventory(InventoryItemModel inventory) async {
+  // add inventory
+  Future<int> insertInventory(InventoryModel inventory) async {
+    try {
+      final db = await database;
+      return await db.insert(INVENTORY, inventory.toMap());
+    } catch (e) {
+      log("error (insertInventory) : ::: : error is ${e.toString()}");
+      return 0;
+    }
+  }
+
+  // insert inventory items
+  Future<int> insertInventoryItem(InventoryItemModel inventory) async {
     try {
       final db = await database;
       return await db.insert(INVENTORY_ITEMS, inventory.toMap());
     } catch (e) {
-      log("error (insertInventory) : ::: : error is ${e.toString()}");
+      log("error (insertInventoryItem) : ::: : error is ${e.toString()}");
       return 0;
     }
   }

@@ -5,6 +5,7 @@ import '../controllers/auth_controller.dart';
 import '../controllers/category_controller.dart';
 import '../controllers/dashboard_controller.dart';
 import '../controllers/discount_group_controller.dart';
+import '../controllers/inventory_controller.dart';
 import '../controllers/product_controller.dart';
 import '../controllers/purchase_order_controller.dart';
 import '../controllers/supplier_controller.dart';
@@ -13,6 +14,7 @@ import '../screens/admin/category/categories.dart';
 import '../screens/admin/dashboard_screen.dart';
 import '../screens/admin/discountgroup/assign_discount_group.dart';
 import '../screens/admin/discountgroup/discount_groups_screen.dart';
+import '../screens/admin/inventory/all_inventory_items.dart';
 import '../screens/admin/new arrivals/receive_po_screen.dart';
 import '../screens/admin/order/all_orders_screen.dart';
 import '../screens/admin/product/products.dart';
@@ -31,6 +33,7 @@ class AdminDrawer extends StatelessWidget {
   final categoryController = Get.put(CategoryController());
   final productController = Get.put(ProductController());
   final supplierController = Get.put(SupplierController());
+  final inventoryController = Get.put(InventoryController());
   final DiscountGroupController discountGroupController = Get.put(
     DiscountGroupController(),
   );
@@ -121,6 +124,13 @@ class AdminDrawer extends StatelessWidget {
               },
               leading: Icon(Icons.category),
               title: Text('Categories', style: AppTextStyle.lableStyle),
+            ),
+            ListTile(
+              onTap: () async {
+                Get.to(() => InventoryScreen());
+              },
+              leading: Icon(Icons.storefront_sharp),
+              title: Text('Inventory', style: AppTextStyle.lableStyle),
             ),
             ListTile(
               onTap: () async {

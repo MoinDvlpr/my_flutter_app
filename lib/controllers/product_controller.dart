@@ -66,6 +66,7 @@ class ProductController extends GetxController {
   TextEditingController productNameController = TextEditingController();
   TextEditingController productDescController = TextEditingController();
   TextEditingController productPriceController = TextEditingController();
+  TextEditingController productCostPriceController = TextEditingController();
   TextEditingController productStockController = TextEditingController();
   TextEditingController categoryNameController = TextEditingController();
   TextEditingController marketPriceController = TextEditingController();
@@ -172,6 +173,7 @@ class ProductController extends GetxController {
               productName: productNameController.text.trim(),
               description: productDescController.text.trim(),
               price: double.parse(productPriceController.text.trim()),
+              costPrice: double.parse(productCostPriceController.text.trim()),
               marketPrice: double.parse(marketPriceController.text.trim()),
               stockQty: int.parse(productStockController.text.trim()),
               categoryId: categoryID!.value,
@@ -208,10 +210,12 @@ class ProductController extends GetxController {
           }
           ProductModel product = ProductModel(
             productId: productID,
+
             marketPrice: double.parse(marketPriceController.text.trim()),
             description: productDescController.text.trim(),
             productName: productNameController.text.trim(),
             price: double.parse(productPriceController.text.trim()),
+            costPrice: double.parse(productCostPriceController.text.trim()),
             stockQty: int.parse(
               productStockController.text.isEmpty
                   ? "0"
@@ -569,6 +573,7 @@ class ProductController extends GetxController {
     categoryNameController.clear();
     productNameController.clear();
     productPriceController.clear();
+    productCostPriceController.clear();
     productDescController.clear();
     productStockController.clear();
     productPriceController.clear();

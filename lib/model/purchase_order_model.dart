@@ -3,6 +3,7 @@ import '../utils/app_constant.dart';
 class PurchaseOrderModel {
   int? id;
   int productID;
+  String? productName;
   double costPerUnit;
   int supplierId;
   int isPartiallyReceived;
@@ -15,7 +16,7 @@ class PurchaseOrderModel {
   PurchaseOrderModel({
     this.id,
     this.supplier,
-
+    this.productName,
     required this.productID,
     required this.costPerUnit,
     required this.isReceived,
@@ -29,6 +30,7 @@ class PurchaseOrderModel {
   factory PurchaseOrderModel.fromMap(Map<String, dynamic> map) {
     return PurchaseOrderModel(
       id: map[PURCHASE_ORDER_ID],
+      productName: map[PRODUCT_NAME],
       productID: map[PRODUCT_ID],
       supplier: map[SUPPLIER_NAME] ?? 'undefined',
       isReceived: map[IS_RECEIVED] ?? 0,

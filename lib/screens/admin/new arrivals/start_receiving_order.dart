@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../controllers/purchase_order_controller.dart';
+import '../../../model/purchase_order_model.dart';
 import '../../../utils/app_colors.dart';
 import '../../../utils/app_textstyles.dart';
 import '../../../widgets/appsubmitbtn.dart';
+import 'calculate_price.dart';
 
 class StartReceivingOrder extends StatelessWidget {
-  StartReceivingOrder({super.key, required this.poID});
-  final int poID;
+  StartReceivingOrder({super.key, required this.po});
+  final PurchaseOrderModel po;
   final poController = Get.find<PurchaseOrderController>();
 
   @override
@@ -15,12 +17,12 @@ class StartReceivingOrder extends StatelessWidget {
     return Scaffold(
       backgroundColor: bg,
       appBar: AppBar(
-        title: Text("PO #$poID"),
+        title: Text("PO #${po.id}"),
         elevation: 0,
         actions: [
           GestureDetector(
             onTap: () async {
-              await poController.fetchAllPOItemsByPOID(poID);
+              await poController.assignSR(po);
             },
             child: Icon(Icons.qr_code_scanner, color: primary),
           ),
@@ -34,7 +36,6 @@ class StartReceivingOrder extends StatelessWidget {
           Expanded(
             child: Obx(() {
               final items = poController.poItems;
-
               if (items.isEmpty) {
                 return Center(
                   child: Column(
@@ -60,9 +61,9 @@ class StartReceivingOrder extends StatelessWidget {
                   final item = items[index];
                   return _buildItemCard(
                     context,
-                    title: item.itemName ?? 'Undefined',
-                    srNumber: item.srNo ?? 'undefined',
-                    costPrice: item.costPerUnit,
+                    title: item.productName ?? 'Undefined',
+                    srNumber: item.serialNumber ?? 'undefined',
+                    costPrice: item.costPerUnit ?? 0.0,
                     marketPrice: item.marketPrice ?? 0.0,
 
                     index: index,
@@ -85,14 +86,16 @@ class StartReceivingOrder extends StatelessWidget {
                   onTap: () {
                     // Handle Save or Submit logic here
                     poController.saveToDB(
-                      purchaseOrderId: poID,
-                      isAll: poController.isSelectAll.value,
+                      po: po,
+
                     );
                   },
                 ),
               ),
+
             ),
           ),
+
         ],
       ),
     );

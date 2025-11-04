@@ -1,10 +1,11 @@
 import '../utils/app_constant.dart';
 
 class ProductModel {
-  final int? productId; // nullable for insert (autoincrement)
+  int? productId; // nullable for insert (autoincrement)
   final String productName;
   final String? description;
   String? srNo;
+  double? costPrice;
   final String insertDate;
   final double price;
   final double marketPrice;
@@ -33,6 +34,7 @@ class ProductModel {
     this.description,
     this.srNo,
     required this.price,
+    this.costPrice,
     required this.stockQty,
     required this.soldQty,
     required this.categoryId,
@@ -45,6 +47,7 @@ class ProductModel {
   factory ProductModel.fromMap(Map<String, dynamic> map) {
     return ProductModel(
       productId: map[PRODUCT_ID],
+      costPrice: map[COST_PRICE],
       marketPrice: map[MARKET_RATE],
       productName: map[PRODUCT_NAME],
       description: map[DESCRIPTION],

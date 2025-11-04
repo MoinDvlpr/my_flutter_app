@@ -46,6 +46,23 @@ class AddOrEditProductScreen extends StatelessWidget {
                   },
                 ),
                 GlobalTextFormField(
+                  label: "Cost price",
+                  controller: productController.productCostPriceController,
+                  textInputType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+                  ],
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return "this field is required";
+                    } else if (double.parse(value) <= 0) {
+                      return 'market price must be grater than 0';
+                    } else {
+                      return null;
+                    }
+                  },
+                ),
+                GlobalTextFormField(
                   label: "Product price",
                   controller: productController.productPriceController,
                   textInputType: TextInputType.number,
