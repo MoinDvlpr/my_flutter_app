@@ -9,7 +9,7 @@ import '../../widgets/global_textfield.dart';
 
 class LoginScreen extends StatelessWidget {
   LoginScreen({super.key});
-  final AuthController authController = Get.put(AuthController());
+  final authController = Get.find<AuthController>();
   final _formKey = GlobalKey<FormState>();
   @override
   Widget build(BuildContext context) {

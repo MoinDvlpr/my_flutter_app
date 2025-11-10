@@ -15,6 +15,7 @@ class DashboardController extends GetxController {
     fetchDashboardData();
     // fetchProfitLossData();
     fetchMostSellingProducts(isInitial: true);
+    fetchTop5LossProduct();
     // fetchTop5RevenueProduct();
     _loadOrderLocations(); // Load order locations on init
     log(":::: :::: :::: :::: ::: ::: ::: ::: on init called");
@@ -29,7 +30,10 @@ class DashboardController extends GetxController {
     final picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2023),
-      initialDateRange: DateTimeRange(start: startDate.value, end: endDate.value),
+      initialDateRange: DateTimeRange(
+        start: startDate.value,
+        end: endDate.value,
+      ),
       lastDate: DateTime.now(),
     );
 
@@ -46,12 +50,10 @@ class DashboardController extends GetxController {
       endDate.value.toIso8601String(),
     );
     chartData.assignAll(data);
-    for(var data in chartData) {
-
-    log("date ${data.date} profit ${data.profit} loss ${data.loss}");
+    for (var data in chartData) {
+      log("date ${data.date} profit ${data.profit} loss ${data.loss}");
     }
   }
-
 
   RxInt totalUsers = 0.obs;
   RxInt totalProducts = 0.obs;
@@ -215,12 +217,12 @@ class DashboardController extends GetxController {
       isLoading.value = false;
     }
   }
-// fetch top 5 products that make highest revenue
+
+  // fetch top 5 products that make highest revenue
   Future<void> fetchTop5RevenueProduct() async {
     try {
       isLoading.value = true;
-      final prods = await DatabaseHelper.instance.getTop5RevenueProducts(
-      );
+      final prods = await DatabaseHelper.instance.getTop5RevenueProducts();
       topRevenueProducts.assignAll(prods);
     } catch (e) {
       log("error (fetchTop5RevenueProduct) : : : : ${e.toString()}");
@@ -233,8 +235,7 @@ class DashboardController extends GetxController {
   Future<void> fetchTop5LossProduct() async {
     try {
       isLoading.value = true;
-      final prods = await DatabaseHelper.instance.getTop5LossProducts(
-      );
+      final prods = await DatabaseHelper.instance.getTop5LossProducts();
       topLossProducts.assignAll(prods);
     } catch (e) {
       log("error (fetchTop5LossProduct) : : : : ${e.toString()}");

@@ -78,6 +78,7 @@ const String ORDERID = "order_id";
 const String ORDER_STATUS = "order_status";
 const String ORDER_DATE = "order_date";
 const String SHIPPING_ADDRESS = "shipping_address";
+const String SERIAL_NUMBERS = "serial_numbers";
 // const String CITY = ;
 // const String STATE = ;
 // const String COUNTRY = ;
@@ -118,8 +119,6 @@ const String INVENTORY_ID = "inventory_id";
 const String REMAINING = "remaining";
 const String PURCHASE_DATE = "purchase_date";
 
-
-
 // const String CATEGORY_NAME = "";
 
 // Table: Suppliers
@@ -137,7 +136,6 @@ const String IS_PARTIALLY_RECIEVED = "is_partially_received";
 const String PURCHASE_ORDER_ITEMS = 'purchase_order_items';
 const String PURCHASE_ITEM_ID = 'purchase_item_id';
 const String COST_PER_UNIT = 'cost_per_unit';
-
 
 // Table: Inventory_Items
 const String INVENTORY_ITEMS = 'inventory_items';

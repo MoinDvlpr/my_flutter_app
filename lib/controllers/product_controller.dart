@@ -46,7 +46,6 @@ class ProductController extends GetxController {
       );
   @override
   void onInit() {
-    // fetchProducts(isInitial: true);
     super.onInit();
   }
 

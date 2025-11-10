@@ -11,6 +11,7 @@ import '../model/inventory_model.dart';
 import '../model/order_item_model.dart';
 import '../model/order_model.dart';
 import '../model/product_model.dart';
+import '../model/product_report_model.dart';
 import '../model/profitdatamodel.dart';
 import '../model/purchase_item_model.dart';
 import '../model/purchase_order_model.dart';
@@ -55,6 +56,7 @@ class DatabaseHelper {
     FOREIGN KEY ($GROUP_ID) REFERENCES $DISCOUNT_GROUPS($GROUP_ID) ON DELETE SET NULL
   )
 ''');
+
         await db.execute('''
   CREATE TABLE $CATEGORIES (
     $CATEGORY_ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,6 +82,7 @@ CREATE TABLE $PRODUCTS (
     ON UPDATE CASCADE
 );
 ''');
+
         await db.execute('''
 CREATE TABLE $FAVORITES (
   $FAVORITE_ID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -93,83 +96,83 @@ CREATE TABLE $FAVORITES (
     ON UPDATE CASCADE
 );
 ''');
-        await db.execute('''
-            CREATE TABLE $DISCOUNT_GROUPS (
-            $GROUP_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-            $GROUP_NAME TEXT UNIQUE COLLATE NOCASE NOT NULL,
-            $DISCOUNT_PERCENTAGE REAL NOT NULL
-        );
-        ''');
 
         await db.execute('''
-        CREATE TABLE $CART (
+  CREATE TABLE $DISCOUNT_GROUPS (
+    $GROUP_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+    $GROUP_NAME TEXT UNIQUE COLLATE NOCASE NOT NULL,
+    $DISCOUNT_PERCENTAGE REAL NOT NULL
+  );
+''');
+
+        await db.execute('''
+CREATE TABLE $CART (
   $CART_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-
   $USERID INTEGER,
   $PRODUCT_ID INTEGER,
   $PRODUCT_QTY INTEGER,
-  FOREIGN KEY ($USERID) REFERENCES $USERS($USERID)  ON DELETE CASCADE,
+  FOREIGN KEY ($USERID) REFERENCES $USERS($USERID) ON DELETE CASCADE,
   FOREIGN KEY ($PRODUCT_ID) REFERENCES $PRODUCTS($PRODUCT_ID) ON DELETE CASCADE
-  
 );
-        ''');
+''');
 
         await db.execute('''
-        CREATE TABLE $SUPPLIERS (
-        $SUPPLIER_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        $SUPPLIER_NAME TEXT NOT NULL,
-        $CONTACT INTEGER,
-        $IS_DELETED INTEGER NOT NULL 
-        );
-        ''');
+CREATE TABLE $SUPPLIERS (
+  $SUPPLIER_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+  $SUPPLIER_NAME TEXT NOT NULL,
+  $CONTACT INTEGER,
+  $IS_DELETED INTEGER NOT NULL 
+);
+''');
 
         await db.execute(''' 
-        CREATE TABLE $PURCHASE_ORDERS (
-        $PURCHASE_ORDER_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        $IS_RECEIVED INTEGER NOT NULL,
-        $PRODUCT_ID INTEGER NOT NULL,
-        $SUPPLIER_ID INTEGER NOT NULL,
-        $ORDER_DATE TEXT NOT NULL,
-        $COST_PER_UNIT REAL NOT NULL,
-        $TOTAL_QTY INTEGER,
-        $TOTAL_COST REAL NOT NULL,
-        $IS_PARTIALLY_RECIEVED INTEGER NOT NULL,
-        FOREIGN KEY ($SUPPLIER_ID) REFERENCES $SUPPLIERS($SUPPLIER_ID),
-        FOREIGN KEY ($PRODUCT_ID) REFERENCES $PRODUCTS($PRODUCT_ID)
-        ON DELETE CASCADE
+CREATE TABLE $PURCHASE_ORDERS (
+  $PURCHASE_ORDER_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+  $IS_RECEIVED INTEGER NOT NULL,
+  $PRODUCT_ID INTEGER NOT NULL,
+  $SUPPLIER_ID INTEGER NOT NULL,
+  $ORDER_DATE TEXT NOT NULL,
+  $COST_PER_UNIT REAL NOT NULL,
+  $TOTAL_QTY INTEGER,
+  $TOTAL_COST REAL NOT NULL,
+  $IS_PARTIALLY_RECIEVED INTEGER NOT NULL,
+  FOREIGN KEY ($SUPPLIER_ID) REFERENCES $SUPPLIERS($SUPPLIER_ID),
+  FOREIGN KEY ($PRODUCT_ID) REFERENCES $PRODUCTS($PRODUCT_ID)
+    ON DELETE CASCADE
     ON UPDATE CASCADE
-        );''');
-
+);
+''');
 
         await db.execute('''
-        CREATE TABLE 
-        $INVENTORY (
-        $INVENTORY_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        $PURCHASE_ORDER_ID INTEGER,
-        $PRODUCT_ID INTEGER NOT NULL,
-        $REMAINING INTEGER NOT NULL,
-        $SELLING_PRICE REAL,
-        $COST_PER_UNIT REAL NOT NULL,
-        $IS_READY_FOR_SALE INTEGER NOT NULL,
-        $PURCHASE_DATE TEXT NOT NULL,
-        FOREIGN KEY ($PRODUCT_ID) REFERENCES $PRODUCTS($PRODUCT_ID)ON DELETE CASCADE
+CREATE TABLE $INVENTORY (
+  $INVENTORY_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+  $PURCHASE_ORDER_ID INTEGER,
+  $PRODUCT_ID INTEGER NOT NULL,
+  $REMAINING INTEGER NOT NULL,
+  $SELLING_PRICE REAL,
+  $COST_PER_UNIT REAL NOT NULL,
+  $IS_READY_FOR_SALE INTEGER NOT NULL,
+  $PURCHASE_DATE TEXT NOT NULL,
+  FOREIGN KEY ($PRODUCT_ID) REFERENCES $PRODUCTS($PRODUCT_ID)
+    ON DELETE CASCADE
     ON UPDATE CASCADE,
-        FOREIGN KEY ($PURCHASE_ORDER_ID) REFERENCES $PURCHASE_ORDERS($PURCHASE_ORDER_ID)
-        ON DELETE CASCADE
+  FOREIGN KEY ($PURCHASE_ORDER_ID) REFERENCES $PURCHASE_ORDERS($PURCHASE_ORDER_ID)
+    ON DELETE CASCADE
     ON UPDATE CASCADE
-        );''');
+);
+''');
 
         await db.execute('''
-        CREATE TABLE 
-        $INVENTORY_ITEMS (
-        $INVENTORY_ITEM_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        $INVENTORY_ID INTEGER NOT NULL,
-        $SERIAL_NUMBER TEXT NOT NULL UNIQUE,
-        $IS_SOLD INTEGER NOT NULL,
-        FOREIGN KEY ($INVENTORY_ID) REFERENCES $INVENTORY($INVENTORY_ID)
-        ON DELETE CASCADE
+CREATE TABLE $INVENTORY_ITEMS (
+  $INVENTORY_ITEM_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+  $INVENTORY_ID INTEGER NOT NULL,
+  $SERIAL_NUMBER TEXT NOT NULL UNIQUE,
+  $IS_SOLD INTEGER NOT NULL,
+  FOREIGN KEY ($INVENTORY_ID) REFERENCES $INVENTORY($INVENTORY_ID)
+    ON DELETE CASCADE
     ON UPDATE CASCADE
-        );''');
+);
+''');
 
         await db.execute('''
   CREATE TABLE $ADDRESSES (
@@ -183,14 +186,14 @@ CREATE TABLE $FAVORITES (
     $COUNTRY TEXT NOT NULL,
     $ZIPCODE TEXT NOT NULL,
     $IS_DEFAULT INTEGER NOT NULL,
-
-  $LATITUDE DOUBLE,
-  $LONGITUDE DOUBLE,
+    $LATITUDE DOUBLE,
+    $LONGITUDE DOUBLE,
     FOREIGN KEY ($USERID) REFERENCES $USERS($USERID) 
-    ON DELETE CASCADE
-    ON UPDATE CASCADE
+      ON DELETE CASCADE
+      ON UPDATE CASCADE
   )
 ''');
+
         await db.execute('''
 CREATE TABLE $ORDERS (
   $ORDERID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -216,15 +219,16 @@ CREATE TABLE $ORDERS (
     $PRODUCT_ID INTEGER NOT NULL,
     $ORDERID INTEGER,
     $ITEM_NAME TEXT NOT NULL,
-    $SERIAL_NUMBER TEXT NOT NULL,
+    $SERIAL_NUMBERS TEXT NOT NULL,
+    $ITEM_QTY INTEGER NOT NULL,
     $ITEM_IMAGE TEXT NOT NULL,
     $ITEM_DESCRIPTION TEXT,
     $ITEM_PRICE REAL NOT NULL,
     $DISCOUNT_PERCENTAGE REAL,
-    FOREIGN KEY ($ORDERID) REFERENCES $ORDERS($ORDERID) 
+    FOREIGN KEY ($ORDERID) REFERENCES $ORDERS($ORDERID),
     FOREIGN KEY ($PRODUCT_ID) REFERENCES $PRODUCTS($PRODUCT_ID) 
-    ON DELETE CASCADE
-    ON UPDATE CASCADE
+      ON DELETE CASCADE
+      ON UPDATE CASCADE
   );
 ''');
 
@@ -245,7 +249,6 @@ CREATE TABLE $ORDERS (
         await db.insert(CATEGORIES, {CATEGORY_NAME: 'Shoes'});
 
         for (int i = 1; i <= 5; i++) {
-          // Reduced from 50 to 5 for lighter dummy data
           await db.insert(CATEGORIES, {CATEGORY_NAME: 'Category $i'});
         }
 
@@ -264,7 +267,6 @@ CREATE TABLE $ORDERS (
         });
 
         for (int i = 16; i < 20; i++) {
-          // Reduced from <100 to <20 for lighter dummy data
           await db.insert(DISCOUNT_GROUPS, {
             GROUP_NAME: 'Discount $i',
             DISCOUNT_PERCENTAGE: i,
@@ -283,151 +285,7 @@ CREATE TABLE $ORDERS (
           });
         }
 
-        // Bulk insert products (limited to 100 records)
-        List<String> images = [
-          '/storage/emulated/0/Download/wdr2.jpg',
-          '/storage/emulated/0/Download/wdr1.jpg',
-          '/storage/emulated/0/Download/wd3.jpg',
-        ];
-        String imagePaths = images.join(',');
-
-        for (int i = 1; i <= 100; i++) {
-          // Reduced from 1000 to 100
-          final result = await db.insert(PRODUCTS, {
-            PRODUCT_NAME: 'Product $i',
-            SERIAL_NUMBER: 'INIT-SR-$i',
-            PRODUCT_IMAGE: imagePaths,
-            DESCRIPTION: 'Description for product $i',
-            PRICE: (100 + i).toDouble(),
-            MARKET_RATE: (150 + i).toDouble(), // Simplified from odd modulo
-            STOCK_QTY:
-                5, // Reduced stock for consistency with inventory inserts
-            SOLD_QTY: i % 5, // Small sold qty
-            INSERT_DATE: DateTime.now().toIso8601String(),
-            CATEGORY_ID: (i % 5) + 1,
-          });
-          final inventory = InventoryModel(productId: result,purchaseDate: DateTime.now(),isReadyForSale: false,costPerUnit: (55 + i).toDouble(),sellingPrice:  (100 + i).toDouble(),remaining: 5);
-          final inventoryResult = await db.insert(INVENTORY, inventory.toMap());
-          if(inventoryResult != 0){
-            for (int j = 1; j <= 5; j++) {
-              // Reduced from 50+i to fixed 5 per product (total ~500 inventory records)
-              await db.insert(INVENTORY_ITEMS, {
-                INVENTORY_ID:inventoryResult,
-                SERIAL_NUMBER:
-                'SR-$result-INIT-${Uuid().v4().replaceAll('-', '').substring(0, 8)}-$j',
-                IS_SOLD:0
-              });
-            }
-          }
-        }
-//         // Constants
-//         List<String> statuses = [
-//           'Paid',
-//           'Delivered',
-//           'Processing',
-//           'Cancelled',
-//           'Shipped',
-//         ];
-//         List<String> paymentMethods = ['Razorpay', 'Cash on Delivery', 'UPI'];
-//
-//         // ---- BULK INSERT ORDERS (WITH REAL SERIAL NUMBER MAPPING) ----
-//         final random = math.Random();
-//         final productList = await db.query(PRODUCTS);
-//
-//         // Fetch all available inventory SRs grouped by product
-//         final inventoryByProduct = <int, List<String>>{};
-//         final allInventory = await db.query(
-//           INVENTORY_ITEMS,
-//           columns: [PRODUCT_ID, SERIAL_NUMBER],
-//         );
-//         for (final row in allInventory) {
-//           final pid = row[PRODUCT_ID] as int;
-//           final sr = row[SERIAL_NUMBER] as String;
-//           inventoryByProduct.putIfAbsent(pid, () => []).add(sr);
-//         }
-//
-//         // Insert limited dummy orders
-//         for (int i = 1; i <= 100; i++) {
-//           int userId = (i % 100) + 1;
-//           String customerName = "User $userId";
-//           String shippingAddress = "Address $userId";
-//
-//           final latitude = 8.0 + random.nextDouble() * (37.0 - 8.0);
-//           final longitude = 68.0 + random.nextDouble() * (97.0 - 68.0);
-//
-//           int itemCount = random.nextInt(3) + 1; // 1–3 products per order
-//           double totalAmount = 0;
-//           int totalQty = 0;
-//           final List<Map<String, dynamic>> orderItems = [];
-//
-//           // Build order items
-//           for (int j = 0; j < itemCount; j++) {
-//             final product = productList[random.nextInt(productList.length)];
-//             int productId = product[PRODUCT_ID] as int;
-//             double price = product[PRICE] as double;
-//
-//             // Get available SRs for this product
-//             final availableSRs = inventoryByProduct[productId] ?? [];
-//
-//             if (availableSRs.isNotEmpty) {
-//               // Take one SR and remove it (so it's not reused)
-//               final sr = availableSRs.removeAt(0);
-//               orderItems.add({
-//                 PRODUCT_ID: productId,
-//                 ITEM_NAME: product[PRODUCT_NAME],
-//                 SERIAL_NUMBER: sr,
-//                 ITEM_IMAGE: product[PRODUCT_IMAGE],
-//                 ITEM_DESCRIPTION: product[DESCRIPTION],
-//                 ITEM_PRICE: price,
-//                 ITEM_QTY: 1,
-//               });
-//               totalAmount += price;
-//               totalQty += 1;
-//             } else {
-//               // Fallback (rare): no SRs left → generate placeholder SR
-//               final dummySR =
-//                   'SR-${productId}-OUT-${Uuid().v4().substring(0, 6)}';
-//               orderItems.add({
-//                 PRODUCT_ID: productId,
-//                 ITEM_NAME: product[PRODUCT_NAME],
-//                 SERIAL_NUMBER: dummySR,
-//                 ITEM_IMAGE: product[PRODUCT_IMAGE],
-//                 ITEM_DESCRIPTION: product[DESCRIPTION],
-//                 ITEM_PRICE: price,
-//                 ITEM_QTY: 1,
-//               });
-//               totalAmount += price;
-//               totalQty += 1;
-//             }
-//           }
-//
-//           // Insert into ORDERS
-//           int orderId = await db.insert(ORDERS, {
-//             USERID: userId,
-//             ORDER_STATUS: statuses[random.nextInt(statuses.length)],
-//             ORDER_DATE: DateTime.now()
-//                 .subtract(Duration(days: random.nextInt(30)))
-//                 .toIso8601String(),
-//             SHIPPING_ADDRESS: shippingAddress,
-//             CUSTOMER_NAME: customerName,
-//             PAYMENT_METHOD:
-//                 paymentMethods[random.nextInt(paymentMethods.length)],
-//             RP_ORDER_ID: null,
-//             RP_PAYMENT_ID: null,
-//             RP_SIGNATURE: null,
-//             TOTAL_QTY: totalQty,
-//             TOTAL_AMOUNT: totalAmount,
-//             LATITUDE: latitude,
-//             LONGITUDE: longitude,
-//           });
-//
-//           // Insert related ORDER_ITEMS
-//           for (final item in orderItems) {
-//             await db.insert(ORDER_ITEMS, {ORDERID: orderId, ...item});
-//           }
-//         }
-//
-//         // Bulk insert suppliers
+        // Bulk insert suppliers
         for (int i = 1; i <= 100; i++) {
           await db.insert(SUPPLIERS, {
             SUPPLIER_NAME: 'Supplier $i',
@@ -435,252 +293,216 @@ CREATE TABLE $ORDERS (
             IS_DELETED: 0,
           });
         }
-//
-//         // Bulk insert purchase orders with items (SR-based and consistent, with qty >1 per product line item)
-//         final productsList = await db.query(PRODUCTS, limit: 100);
-//
-//         for (int i = 1; i <= 10; i++) {
-//           // Reduced from 50 to 10 for lighter dummy data
-//           final supplierId = (i % 100) + 1;
-//           final orderDate = DateTime.now().subtract(
-//             Duration(days: random.nextInt(90)),
-//           );
-//           final isReceived = random.nextInt(10) > 6 ? 1 : 0;
-//           final isPartiallyReceived = isReceived == 0 && random.nextBool()
-//               ? 1
-//               : 0;
-//
-//           final itemCount = random.nextInt(3) + 2; // 2-4 products per PO
-//           final selectedProducts = List.generate(
-//             itemCount,
-//             (_) => productsList[random.nextInt(productsList.length)],
-//           );
-//
-//           // Compute totalQty and prepare line items
-//           int totalQty = 0;
-//           double totalCost = 0.0;
-//           List<Map<String, dynamic>> lineItems = [];
-//
-//           for (var product in selectedProducts) {
-//             final productId = product[PRODUCT_ID] as int;
-//             final qty =
-//                 random.nextInt(3) + 1; // qty >1 possible for single product
-//             final price = product[PRICE] as double;
-//             final double variation = random.nextBool() ? 0.8 : 1.2;
-//             final double costPerUnit = price * variation * 0.7;
-//
-//             totalQty += qty;
-//             totalCost += costPerUnit * qty;
-//
-//             // Add line item (single row per product with full qty, no SR yet)
-//             lineItems.add({
-//               'product_id': productId,
-//               'qty': qty,
-//               'cost_per_unit': costPerUnit,
-//             });
-//           }
-//
-//           final poId = await db.insert(PURCHASE_ORDERS, {
-//             IS_RECEIVED: isReceived,
-//             SUPPLIER_ID: supplierId,
-//             ORDER_DATE: orderDate.toIso8601String(),
-//             TOTAL_QTY: totalQty,
-//             TOTAL_COST: totalCost,
-//             IS_PARTIALLY_RECIEVED: isPartiallyReceived,
-//           });
-//
-//           // Insert PO line items (one per product, with full qty, SERIAL_NUMBER null)
-//           for (var lineItem in lineItems) {
-//             final productId = lineItem[PRODUCT_ID] as int;
-//             final qty = lineItem['qty'] as int;
-//             final costPerUnit = lineItem[COST_PER_UNIT] as double;
-//
-//             await db.insert(PURCHASE_ORDER_ITEMS, {
-//               PURCHASE_ORDER_ID: poId,
-//               PRODUCT_ID: productId,
-//               SERIAL_NUMBER:
-//                   null, // No SR for bulk qty; assign per unit on receive
-//               QUANTITY: qty,
-//               COST_PER_UNIT: costPerUnit,
-//               IS_RECEIVED: isReceived,
-//             });
-//
-//             // If fully received, insert individual inventory items with unique SRs
-//             if (isReceived == 1) {
-//               for (int j = 1; j <= qty; j++) {
-//                 final srNo = SRGenerator.generateSR(productId, poId, j);
-//                 await db.insert(INVENTORY_ITEMS, {
-//                  IS_SOLD:0,
-//                   SERIAL_NUMBER: srNo,
-//                   SELLING_PRICE:
-//                       (productsList.firstWhere(
-//                             (p) => p[PRODUCT_ID] == productId,
-//                           )[PRICE]
-//                           as double),
-//                 });
-//               }
-//             }
-//             // Note: For partial receive, you'd need additional logic to split qty and assign SRs to received portion
-//           }
-//         }
-//
-//         // Bulk insert addresses
-//
-//         final count =
-//             Sqflite.firstIntValue(
-//               await db.rawQuery('SELECT COUNT(*) FROM $ADDRESSES'),
-//             ) ??
-//             0;
-//         if (count == 0) {
-//           final random = math.Random();
-//           for (int i = 1; i <= 100; i++) {
-//             final latitude = 8.0 + random.nextDouble() * (37.0 - 8.0);
-//             final longitude = 68.0 + random.nextDouble() * (97.0 - 68.0);
-//             await db.insert(ADDRESSES, {
-//               USERID: i,
-//               FULL_NAME: 'User $i',
-//               PHONE: 9876540000 + i,
-//               ADDRESS: 'Address $i',
-//               CITY: 'City $i',
-//               STATE: 'State $i',
-//               COUNTRY: 'India',
-//               ZIPCODE: 'ZIP $i',
-//               IS_DEFAULT: 1,
-//               LATITUDE: latitude,
-//               LONGITUDE: longitude,
-//             });
-//           }
-//         }
-//
-//         // ---- INSERT DUMMY PROFIT & LOSS TEST DATA ----
-//         print('Inserting profit/loss test data...');
-//
-// // Create purchase order (known cost per SR)
-//         final testPurchaseOrderId = await db.insert(PURCHASE_ORDERS, {
-//           IS_RECEIVED: 1,
-//           SUPPLIER_ID: 1,
-//           ORDER_DATE: '2025-10-20',
-//           TOTAL_QTY: 4,
-//           TOTAL_COST: 1800.0, // Updated total cost
-//           IS_PARTIALLY_RECIEVED: 0,
-//         });
-//
-// // Define test products and costs
-//         final testItems = [
-//           {'product_id': 1, 'qty': 1, 'cost_per_unit': 100.0},
-//           {'product_id': 2, 'qty': 1, 'cost_per_unit': 200.0},
-//           {'product_id': 3, 'qty': 1, 'cost_per_unit': 500.0},
-//           {'product_id': 4, 'qty': 1, 'cost_per_unit': 1000.0},
-//         ];
-//
-// // Insert purchase order items + inventory entries
-//         for (final item in testItems) {
-//           final productId = item['product_id'] as int;
-//           final qty = item['qty'] as int;
-//           final costPerUnit = item['cost_per_unit'] as double;
-//
-//           final srNo = SRGenerator.generateSR(productId, testPurchaseOrderId, 1);
-//
-//           await db.insert(PURCHASE_ORDER_ITEMS, {
-//             PURCHASE_ORDER_ID: testPurchaseOrderId,
-//             PRODUCT_ID: productId,
-//             SERIAL_NUMBER: srNo,
-//             QUANTITY: qty,
-//             COST_PER_UNIT: costPerUnit,
-//             IS_RECEIVED: 1,
-//           });
-//
-//           // FIX: Inventory table has no inventory_quantity column.
-//           // So we insert properly according to table schema.
-//           final invId = await db.insert(INVENTORY, {
-//             PURCHASE_ORDER_ID: testPurchaseOrderId,
-//             PRODUCT_ID: productId,
-//             REMAINING: qty,
-//             SELLING_PRICE: costPerUnit * 1.2,
-//             COST_PER_UNIT: costPerUnit,
-//             IS_READY_FOR_SALE: 1,
-//             PURCHASE_DATE: '2025-10-20',
-//           });
-//
-//           await db.insert(INVENTORY_ITEMS, {
-//             INVENTORY_ID: invId,
-//             SERIAL_NUMBER: srNo,
-//             IS_SOLD: 0,
-//           });
-//         }
-//
-// // PROFIT DAY
-//         final orderProfitId = await db.insert(ORDERS, {
-//           USERID: 1,
-//           ORDER_STATUS: 'Delivered',
-//           ORDER_DATE: '2025-10-21',
-//           SHIPPING_ADDRESS: 'Test Address 1',
-//           CUSTOMER_NAME: 'Profit Customer',
-//           PAYMENT_METHOD: 'Cash on Delivery',
-//           TOTAL_QTY: 2,
-//           TOTAL_AMOUNT: 450.0,
-//           LATITUDE: 10.0,
-//           LONGITUDE: 70.0,
-//         });
-//
-//         await db.insert(ORDER_ITEMS, {
-//           ORDERID: orderProfitId,
-//           PRODUCT_ID: 1,
-//           ITEM_NAME: 'Product 1',
-//           SERIAL_NUMBER: SRGenerator.generateSR(1, testPurchaseOrderId, 1),
-//           ITEM_IMAGE: '/storage/emulated/0/Download/wdr1.jpg',
-//           ITEM_DESCRIPTION: 'Profit case',
-//           ITEM_PRICE: 150.0, // profit
-//           ITEM_QTY: 1,
-//         });
-//         await db.insert(ORDER_ITEMS, {
-//           ORDERID: orderProfitId,
-//           PRODUCT_ID: 2,
-//           ITEM_NAME: 'Product 2',
-//           SERIAL_NUMBER: SRGenerator.generateSR(2, testPurchaseOrderId, 1),
-//           ITEM_IMAGE: '/storage/emulated/0/Download/wdr2.jpg',
-//           ITEM_DESCRIPTION: 'Profit case',
-//           ITEM_PRICE: 300.0, // profit
-//           ITEM_QTY: 1,
-//         });
-//
-// // LOSS DAY
-//         final orderLossId = await db.insert(ORDERS, {
-//           USERID: 1,
-//           ORDER_STATUS: 'Delivered',
-//           ORDER_DATE: '2025-10-22',
-//           SHIPPING_ADDRESS: 'Test Address 2',
-//           CUSTOMER_NAME: 'Loss Customer',
-//           PAYMENT_METHOD: 'UPI',
-//           TOTAL_QTY: 2,
-//           TOTAL_AMOUNT: 1300.0,
-//           LATITUDE: 11.0,
-//           LONGITUDE: 72.0,
-//         });
-//
-//         await db.insert(ORDER_ITEMS, {
-//           ORDERID: orderLossId,
-//           PRODUCT_ID: 3,
-//           ITEM_NAME: 'Product 3',
-//           SERIAL_NUMBER: SRGenerator.generateSR(3, testPurchaseOrderId, 1),
-//           ITEM_IMAGE: '/storage/emulated/0/Download/wd3.jpg',
-//           ITEM_DESCRIPTION: 'Loss case',
-//           ITEM_PRICE: 400.0, // loss
-//           ITEM_QTY: 1,
-//         });
-//         await db.insert(ORDER_ITEMS, {
-//           ORDERID: orderLossId,
-//           PRODUCT_ID: 4,
-//           ITEM_NAME: 'Product 4',
-//           SERIAL_NUMBER: SRGenerator.generateSR(4, testPurchaseOrderId, 1),
-//           ITEM_IMAGE: '/storage/emulated/0/Download/wdr2.jpg',
-//           ITEM_DESCRIPTION: 'Loss case',
-//           ITEM_PRICE: 900.0, // loss
-//           ITEM_QTY: 1,
-//         });
-//
-//         print('✅ Profit/loss test records inserted successfully (SR-wise).');
 
+        // Bulk insert products
+        List<String> images = [
+          '/storage/emulated/0/Download/wdr2.jpg',
+          '/storage/emulated/0/Download/wdr1.jpg',
+          '/storage/emulated/0/Download/wd3.jpg',
+        ];
+        String imagePaths = images.join(',');
+
+        // Create products with initial stock
+        for (int i = 1; i <= 100; i++) {
+          final productId = await db.insert(PRODUCTS, {
+            PRODUCT_NAME: 'Product $i',
+            SERIAL_NUMBER: 'INIT-SR-$i',
+            PRODUCT_IMAGE: imagePaths,
+            DESCRIPTION: 'Description for product $i',
+            PRICE: (100 + i).toDouble(),
+            MARKET_RATE: (150 + i).toDouble(),
+            STOCK_QTY: 10, // Initial stock: 10 units
+            SOLD_QTY: 0, // Will be updated during order creation
+            INSERT_DATE: DateTime.now().toIso8601String(),
+            CATEGORY_ID: (i % 5) + 1,
+          });
+
+          // Create inventory record for each product
+          final inventoryId = await db.insert(INVENTORY, {
+            PRODUCT_ID: productId,
+            PURCHASE_ORDER_ID: null,
+            REMAINING: 10, // Initial 10 units
+            SELLING_PRICE: (100 + i).toDouble(),
+            COST_PER_UNIT: (55 + i).toDouble(),
+            IS_READY_FOR_SALE: 1,
+            PURCHASE_DATE: DateTime.now().toIso8601String(),
+          });
+
+          // Create 10 inventory items (serial numbers) per product
+          for (int j = 1; j <= 10; j++) {
+            await db.insert(INVENTORY_ITEMS, {
+              INVENTORY_ID: inventoryId,
+              SERIAL_NUMBER:
+                  'SR-$productId-${Uuid().v4().replaceAll('-', '').substring(0, 8).toUpperCase()}-$j',
+              IS_SOLD: 0,
+            });
+          }
+        }
+
+        // Create dummy orders with proper stock management
+        List<String> statuses = [
+          'Paid',
+          'Delivered',
+          'Processing',
+          'Cancelled',
+          'Shipped',
+        ];
+        List<String> paymentMethods = ['Razorpay', 'Cash on Delivery', 'UPI'];
+        final random = math.Random();
+
+        log('Starting order creation...');
+
+        for (int orderNum = 1; orderNum <= 50; orderNum++) {
+          int userId = (orderNum % 100) + 1;
+          String customerName = "User $userId";
+          String shippingAddress =
+              "Address $userId, City ${orderNum % 10}, State ${orderNum % 5}";
+          final latitude = 8.0 + random.nextDouble() * (37.0 - 8.0);
+          final longitude = 68.0 + random.nextDouble() * (97.0 - 68.0);
+
+          // Random number of different products in order (1-3)
+          int numProducts = random.nextInt(3) + 1;
+          double totalAmount = 0;
+          int totalQty = 0;
+
+          final List<Map<String, dynamic>> orderItemsToInsert = [];
+
+          // Get available products with stock
+          final availableProducts = await db.rawQuery('''
+    SELECT p.*, i.$INVENTORY_ID
+    FROM $PRODUCTS p
+    INNER JOIN $INVENTORY i ON p.$PRODUCT_ID = i.$PRODUCT_ID
+    WHERE p.$STOCK_QTY > 0 AND i.$REMAINING > 0
+    ORDER BY RANDOM()
+    LIMIT $numProducts
+  ''');
+
+          if (availableProducts.isEmpty) {
+            log('⚠️ No available products for order $orderNum');
+            continue;
+          }
+
+          for (final product in availableProducts) {
+            int productId = product[PRODUCT_ID] as int;
+            int inventoryId = product[INVENTORY_ID] as int;
+            double price = product[PRICE] as double;
+            int availableStock = product[STOCK_QTY] as int;
+
+            // Random quantity for this product (1-3, but not more than available)
+            int qtyToOrder = math.min(random.nextInt(3) + 1, availableStock);
+            if (qtyToOrder == 0) continue;
+
+            // Get unsold serial numbers for this inventory
+            final inventoryItems = await db.query(
+              INVENTORY_ITEMS,
+              where: '$INVENTORY_ID = ? AND $IS_SOLD = 0',
+              whereArgs: [inventoryId],
+              limit: qtyToOrder,
+            );
+
+            if (inventoryItems.length < qtyToOrder) {
+              log('⚠️ Not enough inventory items for product $productId');
+              continue;
+            }
+
+            // Collect serial numbers
+            List<String> serialNumbers = [];
+            List<int> itemIdsToMarkSold = [];
+
+            for (var item in inventoryItems) {
+              serialNumbers.add(item[SERIAL_NUMBER] as String);
+              itemIdsToMarkSold.add(item[INVENTORY_ITEM_ID] as int);
+            }
+
+            // Calculate item total
+            double itemTotal = price * qtyToOrder;
+            totalAmount += itemTotal;
+            totalQty += qtyToOrder;
+
+            // Add to order items
+            orderItemsToInsert.add({
+              PRODUCT_ID: productId,
+              ITEM_NAME: product[PRODUCT_NAME],
+              SERIAL_NUMBERS: serialNumbers.join(
+                ',',
+              ), // Comma-separated serial numbers
+              ITEM_QTY: qtyToOrder,
+              ITEM_IMAGE: product[PRODUCT_IMAGE],
+              ITEM_DESCRIPTION: product[DESCRIPTION],
+              ITEM_PRICE: price,
+              DISCOUNT_PERCENTAGE: 5.0,
+            });
+
+            // ✅ Mark inventory items as sold
+            for (int itemId in itemIdsToMarkSold) {
+              await db.update(
+                INVENTORY_ITEMS,
+                {IS_SOLD: 1},
+                where: '$INVENTORY_ITEM_ID = ?',
+                whereArgs: [itemId],
+              );
+            }
+
+            // ✅ Update inventory remaining
+            await db.rawUpdate(
+              '''
+      UPDATE $INVENTORY
+      SET $REMAINING = $REMAINING - ?
+      WHERE $INVENTORY_ID = ?
+    ''',
+              [qtyToOrder, inventoryId],
+            );
+
+            // ✅ Update product stock_qty and sold_qty
+            await db.rawUpdate(
+              '''
+      UPDATE $PRODUCTS
+      SET $STOCK_QTY = $STOCK_QTY - ?,
+          $SOLD_QTY = $SOLD_QTY + ?
+      WHERE $PRODUCT_ID = ?
+    ''',
+              [qtyToOrder, qtyToOrder, productId],
+            );
+          }
+
+          if (orderItemsToInsert.isEmpty) {
+            log('⚠️ No items to add for order $orderNum');
+            continue;
+          }
+
+          // ✅ Insert order
+          final orderId = await db.insert(ORDERS, {
+            USERID: userId,
+            ORDER_STATUS: statuses[random.nextInt(statuses.length)],
+            ORDER_DATE: DateTime.now()
+                .subtract(Duration(days: random.nextInt(30)))
+                .toIso8601String(),
+            SHIPPING_ADDRESS: shippingAddress,
+            CUSTOMER_NAME: customerName,
+            PAYMENT_METHOD:
+                paymentMethods[random.nextInt(paymentMethods.length)],
+            RP_ORDER_ID:
+                'RP_${DateTime.now().millisecondsSinceEpoch}_$orderNum',
+            RP_PAYMENT_ID: null,
+            RP_SIGNATURE: null,
+            TOTAL_QTY: totalQty,
+            TOTAL_AMOUNT: totalAmount,
+            LATITUDE: latitude,
+            LONGITUDE: longitude,
+          });
+
+          // ✅ Insert order items
+          for (final item in orderItemsToInsert) {
+            await db.insert(ORDER_ITEMS, {ORDERID: orderId, ...item});
+          }
+
+          log('✅ Order $orderNum created: $totalQty items, ₹$totalAmount');
+        }
+
+        log('✅ Dummy data insertion completed successfully.');
+        log(
+          '✅ All stock quantities, sold quantities, and serial numbers are properly maintained.',
+        );
       },
       onOpen: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
@@ -1093,22 +915,36 @@ CREATE TABLE $ORDERS (
 
       var result = await db.insert(PRODUCTS, product.toMap());
       if (result != 0) {
-          final inventory = InventoryModel(costPerUnit: product.costPrice ?? 0, isReadyForSale: true, remaining: product.stockQty, productId: result, purchaseDate: DateTime.now());
-        final  inventoryResult = await insertInventory(inventory);
-        if(inventoryResult != 0) {
+        final inventory = InventoryModel(
+          costPerUnit: product.costPrice ?? 0,
+          isReadyForSale: true,
+          remaining: product.stockQty,
+          productId: result,
+          purchaseDate: DateTime.now(),
+        );
+        final inventoryResult = await insertInventory(inventory);
+        if (inventoryResult != 0) {
           for (int i = 1; i <= product.stockQty; i++) {
             final sr = SRGenerator.generateSR(result, result, i);
-            final item = InventoryItemModel(inventoryID:inventoryResult, isSold: false, productId: result, serialNumber: sr);
+            final item = InventoryItemModel(
+              inventoryID: inventoryResult,
+              isSold: false,
+              productId: result,
+              serialNumber: sr,
+            );
             await insertInventoryItem(item);
-            if(i==1){
+            if (i == 1) {
               product.srNo = sr;
               product.productId = result;
-              await db.update(PRODUCTS, product.toMap(),where: "$PRODUCT_ID = ?",whereArgs: [result]);
+              await db.update(
+                PRODUCTS,
+                product.toMap(),
+                where: "$PRODUCT_ID = ?",
+                whereArgs: [result],
+              );
             }
-
           }
         }
-
       }
       return result;
     } catch (e) {
@@ -2400,19 +2236,17 @@ CREATE TABLE $ORDERS (
   }
 
   //check stock in inventory
-  Future<List<InventoryItemModel>> fetchStockFromInventory(
-    int productID,
-  ) async {
+  Future<List<InventoryModel>> fetchStockFromInventory(int productID) async {
     try {
       var db = await database;
       var result = await db.rawQuery(
         '''
-        SELECT * FROM $INVENTORY_ITEMS WHERE $PRODUCT_ID =?
+        SELECT i.* FROM $INVENTORY inv JOIN $INVENTORY_ITEMS i ON inv.$INVENTORY_ID = i.$INVENTORY_ID WHERE $PRODUCT_ID =?
       ''',
         [productID],
       );
       if (result.isNotEmpty) {
-        return result.map((e) => InventoryItemModel.fromMap(e)).toList();
+        return result.map((e) => InventoryModel.fromMap(e)).toList();
       } else {
         return [];
       }
@@ -2454,121 +2288,121 @@ CREATE TABLE $ORDERS (
   // }
 
   // deduct stock after place order
-  Future<int?> deductStock({required int productID, required int qty}) async {
-    try {
-      final db = await database;
-      await db.transaction((txn) async {
-        // Get current product info
-        final productResult = await txn.query(
-          PRODUCTS,
-          columns: [SERIAL_NUMBER, STOCK_QTY, SOLD_QTY],
-          where: '$PRODUCT_ID = ?',
-          whereArgs: [productID],
-        );
-        if (productResult.isEmpty) {
-          throw Exception('Product not found');
-        }
-        final product = productResult.first;
-        String? currentSr = product[SERIAL_NUMBER] as String?;
-        int currentSoldQty = product[SOLD_QTY] as int;
+  // Future<int?> deductStock({required int productID, required int qty}) async {
+  //   try {
+  //     final db = await database;
+  //     await db.transaction((txn) async {
+  //       // Get current product info
+  //       final productResult = await txn.query(
+  //         PRODUCTS,
+  //         columns: [SERIAL_NUMBER, STOCK_QTY, SOLD_QTY],
+  //         where: '$PRODUCT_ID = ?',
+  //         whereArgs: [productID],
+  //       );
+  //       if (productResult.isEmpty) {
+  //         throw Exception('Product not found');
+  //       }
+  //       final product = productResult.first;
+  //       String? currentSr = product[SERIAL_NUMBER] as String?;
+  //       int currentSoldQty = product[SOLD_QTY] as int;
 
-        int remaining = qty;
-        String activeSr = currentSr ?? '';
+  //       int remaining = qty;
+  //       String activeSr = currentSr ?? '';
 
-        while (remaining > 0) {
-          // Get current inventory item for active SR
-          final invResult = await txn.query(
-            INVENTORY_ITEMS,
-            where: '$SERIAL_NUMBER = ? AND $PRODUCT_ID = ?',
-            whereArgs: [activeSr, productID],
-            limit: 1,
-          );
+  //       while (remaining > 0) {
+  //         // Get current inventory item for active SR
+  //         final invResult = await txn.query(
+  //           INVENTORY_ITEMS,
+  //           where: '$SERIAL_NUMBER = ? AND $PRODUCT_ID = ?',
+  //           whereArgs: [activeSr, productID],
+  //           limit: 1,
+  //         );
 
-          Map<String, dynamic>? currentInv;
-          if (invResult.isNotEmpty) {
-            currentInv = invResult.first;
-            int avail = currentInv[INVENTORY_QUANTITY] as int;
-            if (avail <= 0) {
-              currentInv = null; // Treat as no stock
-            }
-          }
+  //         Map<String, dynamic>? currentInv;
+  //         if (invResult.isNotEmpty) {
+  //           currentInv = invResult.first;
+  //           int avail = currentInv[INVENTORY_QUANTITY] as int;
+  //           if (avail <= 0) {
+  //             currentInv = null; // Treat as no stock
+  //           }
+  //         }
 
-          if (currentInv == null) {
-            // No stock in current SR, find next available
-            final nextInvResult = await txn.rawQuery(
-              '''
-              SELECT * FROM $INVENTORY_ITEMS 
-              WHERE $PRODUCT_ID = ? AND $INVENTORY_QUANTITY > 0 
-              AND $SERIAL_NUMBER != ? 
-              ORDER BY $INVENTORY_ITEM_ID ASC 
-              LIMIT 1
-            ''',
-              [productID, activeSr],
-            );
+  //         if (currentInv == null) {
+  //           // No stock in current SR, find next available
+  //           final nextInvResult = await txn.rawQuery(
+  //             '''
+  //             SELECT * FROM $INVENTORY_ITEMS
+  //             WHERE $PRODUCT_ID = ? AND $INVENTORY_QUANTITY > 0
+  //             AND $SERIAL_NUMBER != ?
+  //             ORDER BY $INVENTORY_ITEM_ID ASC
+  //             LIMIT 1
+  //           ''',
+  //             [productID, activeSr],
+  //           );
 
-            if (nextInvResult.isEmpty) {
-              // No more available inventory
-              break;
-            }
+  //           if (nextInvResult.isEmpty) {
+  //             // No more available inventory
+  //             break;
+  //           }
 
-            currentInv = nextInvResult.first;
-            activeSr = currentInv[SERIAL_NUMBER] as String;
+  //           currentInv = nextInvResult.first;
+  //           activeSr = currentInv[SERIAL_NUMBER] as String;
 
-            // Assign new SR to product
-            await txn.update(
-              PRODUCTS,
-              {SERIAL_NUMBER: activeSr},
-              where: '$PRODUCT_ID = ?',
-              whereArgs: [productID],
-            );
-          }
+  //           // Assign new SR to product
+  //           await txn.update(
+  //             PRODUCTS,
+  //             {SERIAL_NUMBER: activeSr},
+  //             where: '$PRODUCT_ID = ?',
+  //             whereArgs: [productID],
+  //           );
+  //         }
 
-          // Deduct from current inventory
-          int avail = currentInv[INVENTORY_QUANTITY] as int;
-          int deductHere = math.min(avail, remaining);
-          int newInvQty = avail - deductHere;
+  //         // Deduct from current inventory
+  //         int avail = currentInv[INVENTORY_QUANTITY] as int;
+  //         int deductHere = math.min(avail, remaining);
+  //         int newInvQty = avail - deductHere;
 
-          await txn.update(
-            INVENTORY_ITEMS,
-            {INVENTORY_QUANTITY: newInvQty},
-            where: '$INVENTORY_ITEM_ID = ?',
-            whereArgs: [currentInv[INVENTORY_ITEM_ID]],
-          );
+  //         await txn.update(
+  //           INVENTORY_ITEMS,
+  //           {INVENTORY_QUANTITY: newInvQty},
+  //           where: '$INVENTORY_ITEM_ID = ?',
+  //           whereArgs: [currentInv[INVENTORY_ITEM_ID]],
+  //         );
 
-          remaining -= deductHere;
+  //         remaining -= deductHere;
 
-          // If depleted, optionally remove if qty == 0 (but user said no remove sr, but this is inventory, not product sr)
-          if (newInvQty == 0) {
-            // Leave it as 0, or delete if preferred
-            // await txn.delete(INVENTORY_ITEMS, where: '$INVENTORY_ITEM_ID = ?', whereArgs: [currentInv[INVENTORY_ITEM_ID]]);
-          }
-        }
+  //         // If depleted, optionally remove if qty == 0 (but user said no remove sr, but this is inventory, not product sr)
+  //         if (newInvQty == 0) {
+  //           // Leave it as 0, or delete if preferred
+  //           // await txn.delete(INVENTORY_ITEMS, where: '$INVENTORY_ITEM_ID = ?', whereArgs: [currentInv[INVENTORY_ITEM_ID]]);
+  //         }
+  //       }
 
-        // Calculate deducted amount
-        int deducted = qty - remaining;
+  //       // Calculate deducted amount
+  //       int deducted = qty - remaining;
 
-        if (deducted > 0) {
-          // Update product totals
-          final newSoldQty = currentSoldQty + deducted;
-          final newStockQty = await _getTotalStockFromInventory(txn, productID);
+  //       if (deducted > 0) {
+  //         // Update product totals
+  //         final newSoldQty = currentSoldQty + deducted;
+  //         final newStockQty = await _getTotalStockFromInventory(txn, productID);
 
-          await txn.update(
-            PRODUCTS,
-            {SOLD_QTY: newSoldQty, STOCK_QTY: newStockQty},
-            where: '$PRODUCT_ID = ?',
-            whereArgs: [productID],
-          );
-        }
-      });
+  //         await txn.update(
+  //           PRODUCTS,
+  //           {SOLD_QTY: newSoldQty, STOCK_QTY: newStockQty},
+  //           where: '$PRODUCT_ID = ?',
+  //           whereArgs: [productID],
+  //         );
+  //       }
+  //     });
 
-      // Return 1 for success if deducted >0, else 0
-      final stock = await fetchStock(productID);
-      return (stock[STOCK_QTY] as int) < (stock[STOCK_QTY] + qty) ? 1 : 0;
-    } catch (e) {
-      log("error (deductStock) : : : --> ${e.toString()}");
-      return null;
-    }
-  }
+  //     // Return 1 for success if deducted >0, else 0
+  //     final stock = await fetchStock(productID);
+  //     return (stock[STOCK_QTY] as int) < (stock[STOCK_QTY] + qty) ? 1 : 0;
+  //   } catch (e) {
+  //     log("error (deductStock) : : : --> ${e.toString()}");
+  //     return null;
+  //   }
+  // }
 
   // Helper method to get total stock from inventory
   Future<int> _getTotalStockFromInventory(
@@ -2600,15 +2434,32 @@ CREATE TABLE $ORDERS (
   // fetch order items for order
   Future<List<OrderItemModel>> getOrderItemsByOrderID(int orderID) async {
     try {
-      var db = await database;
-      var result = await db.query(
-        ORDER_ITEMS,
-        where: "$ORDERID =?",
-        whereArgs: [orderID],
+      final db = await database;
+
+      final result = await db.rawQuery(
+        '''
+      SELECT 
+        oi.$ITEM_ID,
+        oi.$PRODUCT_ID,
+        oi.$ORDERID,
+        oi.$ITEM_NAME,
+        oi.$ITEM_IMAGE,
+        oi.$SERIAL_NUMBERS,
+        oi.$ITEM_DESCRIPTION,
+        oi.$ITEM_PRICE,
+        oi.$DISCOUNT_PERCENTAGE,
+        oi.$ITEM_QTY
+      FROM $ORDER_ITEMS oi
+      INNER JOIN $PRODUCTS p
+        ON oi.$PRODUCT_ID = p.$PRODUCT_ID
+      WHERE oi.$ORDERID = ?
+    ''',
+        [orderID],
       );
+
       return result.map((item) => OrderItemModel.fromMap(item)).toList();
     } catch (e) {
-      log("error (getOrderItemsByOrderID) : : : : : ${e.toString()}");
+      log("error (getOrderItemsByOrderID) ::: ${e.toString()}");
       return [];
     }
   }
@@ -2975,7 +2826,6 @@ CREATE TABLE $ORDERS (
 
   Future<List<ProductModel>> getTop5RevenueProducts() async {
     final db = await database;
-
     final result = await db.rawQuery('''
     SELECT 
       p.*,
@@ -2998,35 +2848,38 @@ CREATE TABLE $ORDERS (
   }
 
   Future<List<ProductModel>> getTop5LossProducts() async {
-    final db = await database;
+    try {
+      final db = await database;
 
-    final result = await db.rawQuery('''
+      final result = await db.rawQuery('''
     SELECT 
       p.*,
       SUM(
         CASE 
-          WHEN poi.$COST_PER_UNIT > oi.$ITEM_PRICE 
-            THEN (poi.$COST_PER_UNIT - oi.$ITEM_PRICE) * oi.$ITEM_QTY
+          WHEN inv.$COST_PER_UNIT > oi.$ITEM_PRICE 
+            THEN (inv.$COST_PER_UNIT - oi.$ITEM_PRICE) * oi.$ITEM_QTY
           ELSE 0 
         END
       ) AS total_loss
     FROM $ORDER_ITEMS oi
     JOIN $ORDERS o ON o.$ORDERID = oi.$ORDERID
     JOIN $PRODUCTS p ON p.$PRODUCT_ID = oi.$PRODUCT_ID
-    LEFT JOIN $PURCHASE_ORDER_ITEMS poi 
-      ON poi.$PRODUCT_ID = oi.$PRODUCT_ID 
-      AND poi.$SERIAL_NUMBER = oi.$SERIAL_NUMBER
+    JOIN $INVENTORY inv ON inv.$PRODUCT_ID = oi.$PRODUCT_ID
     GROUP BY p.$PRODUCT_ID
     HAVING total_loss > 0
     ORDER BY total_loss DESC
     LIMIT 5
   ''');
-
-    return result.map((e) {
-      final product = ProductModel.fromMap(e);
-      product.totalLoss = double.tryParse(e['total_loss'].toString()) ?? 0.0;
-      return product;
-    }).toList();
+      print("hello world from getTop5LossProducts ${result.toString()}");
+      return result.map((e) {
+        final product = ProductModel.fromMap(e);
+        product.totalLoss = double.tryParse(e['total_loss'].toString()) ?? 0.0;
+        return product;
+      }).toList();
+    } catch (e) {
+      log("error(getTop5LossProducts) ::: :::: ::: ${e.toString()}");
+      return [];
+    }
   }
 
   // add inventory
@@ -3040,6 +2893,40 @@ CREATE TABLE $ORDERS (
     }
   }
 
+  Future<int> updateInventory(InventoryModel inventory) async {
+    try {
+      final db = await database;
+      int result = 0;
+      final inventoryUpdate = await db.update(
+        INVENTORY,
+        inventory.toMap(),
+        where: "$INVENTORY_ID  = ?",
+        whereArgs: [inventory.id],
+      );
+      if (inventoryUpdate != 0) {
+        final product = await db.rawQuery(
+          '''SELECT * FROM $PRODUCTS WHERE $PRODUCT_ID = ?''',
+          [inventory.productId],
+        );
+
+        if (product.isNotEmpty) {
+          int quantity = product.first[STOCK_QTY] as int;
+          quantity = quantity + inventory.remaining;
+          print("inventory productID :::: ${inventory.productId}");
+          final stockeUpdate = await db.rawUpdate(
+            '''UPDATE $PRODUCTS SET $STOCK_QTY = ?, $PRICE = ? WHERE $PRODUCT_ID = ?''',
+            [quantity, inventory.sellingPrice, inventory.productId],
+          );
+          result = stockeUpdate;
+        }
+      }
+      return result;
+    } catch (e) {
+      log("error (updateInventory) : ::: : error is ${e.toString()}");
+      return 0;
+    }
+  }
+
   // insert inventory items
   Future<int> insertInventoryItem(InventoryItemModel inventory) async {
     try {
@@ -3048,6 +2935,235 @@ CREATE TABLE $ORDERS (
     } catch (e) {
       log("error (insertInventoryItem) : ::: : error is ${e.toString()}");
       return 0;
+    }
+  }
+
+  // get inventory by productID
+  Future<List<InventoryModel>> getInventoryByProductId(int productId) async {
+    try {
+      final db = await database;
+      final result = await db.rawQuery(
+        '''SELECT * FROM $INVENTORY WHERE $PRODUCT_ID = ? AND $REMAINING > 0''',
+        [productId],
+      );
+      return result.map((e) => InventoryModel.fromMap(e)).toList();
+    } catch (e) {
+      log('error(getInventoryByProductId) : ::: : error is ${e.toString()}');
+      return [];
+    }
+  }
+
+  // get all inventory
+  Future<List<InventoryModel>> getInventories({
+    int limit = 20,
+    int offset = 0,
+    bool? isInSale,
+  }) async {
+    try {
+      final db = await database;
+      String whereString = "";
+      if (isInSale != null && isInSale) {
+        whereString = "WHERE i.$IS_READY_FOR_SALE = 1";
+      } else if (isInSale != null && !isInSale) {
+        whereString = "WHERE i.$REMAINING = 0";
+      } else {
+        whereString = "";
+      }
+      final result = await db.rawQuery(
+        '''
+        SELECT i.*, p.$PRODUCT_NAME, p.$PRICE, p.$MARKET_RATE
+        FROM $INVENTORY i 
+JOIN $PRODUCTS p
+        ON i.$PRODUCT_ID = p.$PRODUCT_ID
+        $whereString
+        ORDER BY $INVENTORY_ID DESC
+        LIMIT ? OFFSET ?
+''',
+        [limit, offset],
+      );
+      log(result.toList().toString());
+      return result.map((e) => InventoryModel.fromMap(e)).toList();
+    } catch (e) {
+      log("error(getAllInventory) :::: :::: ::: ${e.toString()}");
+      return [];
+    }
+  }
+
+  // Updated deductStock method in DatabaseHelper - now returns List<String> of serial numbers
+  // Caller can then use the model's method to convert to string if needed
+  Future<List<String>> deductStock({
+    required int productID,
+    required int qty,
+  }) async {
+    if (qty <= 0) return [];
+    try {
+      var db = await database;
+      List<String> serials = [];
+      await db.transaction((txn) async {
+        for (int i = 0; i < qty; i++) {
+          // Find the next unsold inventory item for the product
+          var result = await txn.rawQuery(
+            '''
+          SELECT i.$INVENTORY_ITEM_ID, i.$SERIAL_NUMBER, inv.$INVENTORY_ID, inv.$REMAINING
+          FROM $INVENTORY_ITEMS i
+          JOIN $INVENTORY inv ON i.$INVENTORY_ID = inv.$INVENTORY_ID
+          WHERE inv.$PRODUCT_ID = ? AND i.$IS_SOLD = 0
+          ORDER BY i.$INVENTORY_ITEM_ID ASC
+          LIMIT 1
+          ''',
+            [productID],
+          );
+          if (result.isEmpty) {
+            throw Exception('Insufficient stock for product ID: $productID');
+          }
+          var row = result.first;
+          int itemId = row['$INVENTORY_ITEM_ID'] as int;
+          String serial = row['$SERIAL_NUMBER'] as String;
+          int invId = row['$INVENTORY_ID'] as int;
+          int currentRemaining = row['$REMAINING'] as int;
+
+          if (currentRemaining <= 0) {
+            throw Exception(
+              'Inventory remaining is zero or negative for product ID: $productID',
+            );
+          }
+
+          // Mark the item as sold
+          int updatedItemRows = await txn.update(
+            INVENTORY_ITEMS,
+            {'$IS_SOLD': 1},
+            where: '$INVENTORY_ITEM_ID = ?',
+            whereArgs: [itemId],
+          );
+          if (updatedItemRows != 1) {
+            throw Exception('Failed to mark inventory item as sold');
+          }
+
+          // Decrement remaining in the parent inventory
+          int updatedInvRows = await txn.rawUpdate(
+            'UPDATE $INVENTORY SET $REMAINING = $REMAINING - 1 WHERE $INVENTORY_ID = ?',
+            [invId],
+          );
+          if (updatedInvRows != 1) {
+            throw Exception('Failed to update inventory remaining');
+          }
+
+          serials.add(serial);
+        }
+        // Update product's overall stock and sold quantities
+        int updatedProductRows = await txn.rawUpdate(
+          'UPDATE $PRODUCTS SET $STOCK_QTY = $STOCK_QTY - ?, $SOLD_QTY = $SOLD_QTY + ? WHERE $PRODUCT_ID = ?',
+          [qty, qty, productID],
+        );
+        if (updatedProductRows != 1) {
+          throw Exception('Failed to update product stock/sold quantities');
+        }
+      });
+      return serials;
+    } catch (e) {
+      log("Error deducting stock for product $productID: ${e.toString()}");
+      rethrow; // Re-throw to handle in the calling function
+    }
+  }
+
+  // get batch report
+  Future<ProductReportModel?> getProductReport(int productId) async {
+    try {
+      final db = await database;
+
+      // Fetch all inventory entries (batches) for this product
+      final invResults = await db.rawQuery(
+        '''
+  SELECT 
+    i.*, 
+    (
+      SELECT COUNT(*) 
+      FROM $INVENTORY_ITEMS ii 
+      WHERE ii.$INVENTORY_ID = i.$INVENTORY_ID 
+        AND ii.$IS_SOLD = 1
+    ) AS sold_qty,
+    (
+      IFNULL(i.$SELLING_PRICE, 0) *
+      (
+        SELECT COUNT(*) 
+        FROM $INVENTORY_ITEMS ii 
+        WHERE ii.$INVENTORY_ID = i.$INVENTORY_ID 
+          AND ii.$IS_SOLD = 1
+      )
+    ) AS total_revenue
+  FROM $INVENTORY i
+  WHERE i.$PRODUCT_ID = ?
+  ORDER BY i.$INVENTORY_ID DESC
+  ''',
+        [productId],
+      );
+
+      final items = invResults.map((e) => ReportItemModel.fromMap(e)).toList();
+
+      // Calculate aggregates
+      final totalCost = items.fold<double>(
+        0.0,
+        (sum, i) => sum + i.costPrice * (i.remaining + i.soldQty),
+      );
+      final totalRevenue = items.fold<double>(
+        0.0,
+        (sum, i) => sum + i.totalRevenue,
+      );
+      final totalSold = items.fold<int>(0, (sum, i) => sum + i.soldQty);
+      final totalRemaining = items.fold<int>(0, (sum, i) => sum + i.remaining);
+      final avgCost = totalSold + totalRemaining > 0
+          ? totalCost / (totalSold + totalRemaining)
+          : 0.0;
+      final avgSelling = items.isNotEmpty
+          ? items.map((e) => e.sellingPrice ?? 0).reduce((a, b) => a + b) /
+                items.length
+          : 0.0;
+
+      // Get product info
+      final productResult = await db.rawQuery(
+        '''
+    SELECT $PRODUCT_NAME, $MARKET_RATE 
+    FROM $PRODUCTS WHERE $PRODUCT_ID = ?
+  ''',
+        [productId],
+      );
+
+      if (productResult.isEmpty) return null;
+
+      final productData = productResult.first;
+      return ProductReportModel(
+        productId: productId,
+        productName: productData[PRODUCT_NAME].toString(),
+        marketRate: double.parse(productData[MARKET_RATE].toString() ?? '0.0'),
+        averageCost: avgCost,
+        averageSellingPrice: avgSelling,
+        totalBatches: items.length,
+        totalSoldQty: totalSold,
+        totalRemaining: totalRemaining,
+        totalRevenue: totalRevenue,
+        totalProfit: totalRevenue - totalCost,
+        reportItems: items,
+      );
+    } catch (e) {
+      log("Error getting product report: ${e.toString()}");
+    }
+  }
+
+  // get out of stock product
+  Future<List<ProductModel>> getOutOfStockProducts({
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    try {
+      final db = await database;
+      final results = await db.rawQuery(
+        'SELECT * FROM $PRODUCTS WHERE $STOCK_QTY = 0 LIMIT ? OFFSET ?',
+        [limit, offset],
+      );
+      return results.map((e) => ProductModel.fromMap(e)).toList();
+    } catch (e) {
+      log('Error getting out of stock products: ${e.toString()}');
+      return [];
     }
   }
 }

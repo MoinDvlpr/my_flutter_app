@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../controllers/inventory_controller.dart';
 import '../../../controllers/purchase_order_controller.dart';
 import '../../../model/purchase_order_model.dart';
 import '../../../utils/app_colors.dart';
@@ -11,6 +12,7 @@ class StartReceivingOrder extends StatelessWidget {
   StartReceivingOrder({super.key, required this.po});
   final PurchaseOrderModel po;
   final poController = Get.find<PurchaseOrderController>();
+  final inventoryController = Get.find<InventoryController>();
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +67,6 @@ class StartReceivingOrder extends StatelessWidget {
                     srNumber: item.serialNumber ?? 'undefined',
                     costPrice: item.costPerUnit ?? 0.0,
                     marketPrice: item.marketPrice ?? 0.0,
-
                     index: index,
                   );
                 },
@@ -87,7 +88,6 @@ class StartReceivingOrder extends StatelessWidget {
                     // Handle Save or Submit logic here
                     poController.saveToDB(
                       po: po,
-
                     );
                   },
                 ),

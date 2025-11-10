@@ -15,6 +15,7 @@ import '../utils/dialog_utils.dart';
 import '../utils/selling_price_confirm_dialogue.dart';
 import '../utils/sr_generator.dart';
 import '../widgets/app_snackbars.dart';
+import 'inventory_controller.dart';
 
 class PurchaseOrderController extends GetxController
     with GetSingleTickerProviderStateMixin {
@@ -27,12 +28,12 @@ class PurchaseOrderController extends GetxController
         fetchPage: (pageKey) => fetchAllReadyForReceivePOs(pageKey: pageKey),
       );
   final PagingController<int, PurchaseOrderModel> pagingControllerForReceived =
-  PagingController<int, PurchaseOrderModel>(
-    // Start with page 1
-    getNextPageKey: (state) =>
-    state.lastPageIsEmpty ? null : state.nextIntPageKey,
-    fetchPage: (pageKey) => fetchAllReceivePOs(pageKey: pageKey),
-  );
+      PagingController<int, PurchaseOrderModel>(
+        // Start with page 1
+        getNextPageKey: (state) =>
+            state.lastPageIsEmpty ? null : state.nextIntPageKey,
+        fetchPage: (pageKey) => fetchAllReceivePOs(pageKey: pageKey),
+      );
 
   /// on close
   @override
@@ -53,9 +54,19 @@ class PurchaseOrderController extends GetxController
     try {
       int length = po.totalQty;
       poItems.clear();
-      final product = await DatabaseHelper.instance.getProductByID(productID: po.productID);
-      for(int i = 1;i<= length;i++){
-        final item = InventoryItemModel(productName:po.productName,costPerUnit: po.costPerUnit,marketPrice: product?[MARKET_RATE],productId: po.productID,isSold: false, serialNumber: 'not defined',);
+      final product = await DatabaseHelper.instance.getProductByID(
+        productID: po.productID,
+      );
+      for (int i = 1; i <= length; i++) {
+        final item = InventoryItemModel(
+          productName: po.productName,
+          costPerUnit: po.costPerUnit,
+          marketPrice: product?[MARKET_RATE],
+          currentSellingPrice: product?[PRICE],
+          productId: po.productID,
+          isSold: false,
+          serialNumber: 'not defined',
+        );
         String sr = SRGenerator.generateSR(po.productID, po.id!, i);
         // Create a new copy of the item with unique serial number
         InventoryItemModel newItem = item.copyWith(serialNumber: sr);
@@ -80,27 +91,27 @@ class PurchaseOrderController extends GetxController
   final selectedDate = Rxn<DateTime>();
   RxString supplierName = "".obs;
 
-
   /// loading var
   RxBool isLoading = false.obs;
+
   /// add to database
   Future<void> addOREditPO({int? poID, int isReceived = 0}) async {
     try {
-      if(productID == null) return;
+      if (productID == null) return;
       if (supplierID != null) {
         isLoading.value = true;
         if (poID == null) {
-          if(productID == null) return;
+          if (productID == null) return;
           final po = PurchaseOrderModel(
             supplierId: supplierID!,
             isReceived: isReceived,
             productID: productID!,
-            costPerUnit: double.parse(itemCostPriceController.text.toString()) ,
+            costPerUnit: double.parse(itemCostPriceController.text.toString()),
             orderDate: selectedDate.value ?? DateTime.now(),
             totalQty: int.parse(itemQuantityController.text.toString()),
 
             totalCost: totalCost.value,
-            isPartiallyReceived: 0
+            isPartiallyReceived: 0,
           );
           final result = await DatabaseHelper.instance.insertPO(po);
           if (result != 0) {
@@ -118,8 +129,8 @@ class PurchaseOrderController extends GetxController
           final po = PurchaseOrderModel(
             id: poID,
             isReceived: isReceived,
-            productID: productID!
-            ,costPerUnit: double.parse(itemCostPriceController.text.toString()),
+            productID: productID!,
+            costPerUnit: double.parse(itemCostPriceController.text.toString()),
             supplierId: supplierID!,
             orderDate: selectedDate.value ?? DateTime.now(),
             totalQty: totalQuantity.value,
@@ -145,31 +156,6 @@ class PurchaseOrderController extends GetxController
       log("error (addOREditPO) : : :: :: : : : ${e.toString()}");
     }
   }
-
-  /// update purchase order items
-  Future<void> updatePOItems() async {
-    try {
-      for (var item in poItems) {
-        // await DatabaseHelper.instance.updatePOItem(item);
-      }
-    } catch (e) {
-      log("error (updatePOItems) :::: ::: ::: ${e.toString()} ");
-    }
-  }
-
-
-  /// fill purchase order for edit
-  // Future<void> fillDataForEdit(
-  //   PurchaseOrderModel po,
-  //   List<PurchaseOrderItemModel> items,
-  // ) async {
-  //   supplierID = po.supplierId;
-  //   totalCost.value = po.totalCost;
-  //   totalQuantity.value = po.totalQty;
-  //   selectedDate.value = po.orderDate;
-  //   // final poItems = await DatabaseHelper.instance.getPOItemsByPOID(po.id!);
-  //   items.assignAll(poItems);
-  // }
 
   /// get all purchase order ready for receiving
   final pageSize = 20;
@@ -225,40 +211,69 @@ class PurchaseOrderController extends GetxController
     }
   }
 
-
-
   /// Save to db and increase product quantity in products
   Future<void> saveToDB({required PurchaseOrderModel po}) async {
     try {
       isLoading.value = true;
       final db = DatabaseHelper.instance;
-      final inventory = InventoryModel(costPerUnit: po.costPerUnit, isReadyForSale: false, remaining: po.totalQty, productId: po.productID, purchaseOrderID: po.id, purchaseDate: po.orderDate);
+      final inventory = InventoryModel(
+        costPerUnit: po.costPerUnit,
+        isReadyForSale: false,
+        remaining: po.totalQty,
+        productId: po.productID,
+        purchaseOrderID: po.id,
+        purchaseDate: po.orderDate,
+      );
       final result = await db.insertInventory(inventory);
-      if(result != 0 ) {
-      bool  hasError = false;
-        for(var item in poItems) {
+      InventoryItemModel? invItem;
+      if (result != 0) {
+        final invController = Get.find<InventoryController>();
+        bool hasError = false;
+        for (var item in poItems) {
           item.inventoryID = result;
+          invItem = item;
           final itemResult = await db.insertInventoryItem(item);
-          if(!(itemResult !=0)){
+          if (!(itemResult != 0)) {
             hasError = true;
             break;
           }
         }
-        if(!hasError){
+        if (!hasError) {
           po.isReceived = 1;
           po.isPartiallyReceived = 0;
           final isPoUpdate = await db.updatePO(po);
           pagingController.refresh();
-          if(isPoUpdate != 0) {
+          if (isPoUpdate != 0) {
             isLoading.value = false;
             poItems.clear();
-            Get.back();
-            inventory.id = result;
-            Get.to(()=>CalculatePrice(inventory: inventory,));
-            DialogUtils.showFullScreenDialog(
-              title: 'Success!',
-              message: "Purchase order received successfully.",
-            );
+
+            if (invItem != null) {
+              invController.reset();
+              inventory.id = result;
+              inventory.productName = invItem.productName;
+              inventory.currentSellingPrice = invItem.currentSellingPrice;
+              inventory.marketPrice = invItem.marketPrice;
+
+              Get.off(() => CalculatePrice(inv: inventory));
+              Get.closeAllSnackbars();
+              AppSnackbars.success('Success!', "Order received successfully!");
+              final confirmController = Get.put(ConfirmPriceController());
+              invController.setData(inventory: inventory);
+              confirmController.startDelayedConfirm(
+                delay: const Duration(seconds: 3),
+                onAccept: () {
+                  Get.closeAllSnackbars();
+                  AppSnackbars.success('Success', 'price accepted by user.');
+                },
+                onCancel: () {
+                  Get.closeAllSnackbars();
+                  AppSnackbars.error('Canceled', 'price is canceled by user.');
+                  invController.priceController.clear();
+                  invController.newSellingPrice.value = null;
+                  invController.profitMargin.value = 0.0;
+                },
+              );
+            }
           } else {
             isLoading.value = false;
             DialogUtils.showFullScreenDialog(
@@ -280,9 +295,10 @@ class PurchaseOrderController extends GetxController
     }
   }
 
-  clearControllers(){
+  clearControllers() {
     supplierID = null;
     supplierName.value = "";
+    selectedDate.value = DateTime.now();
     supplierNameController.clear();
     productID == null;
     itemNameController.clear();

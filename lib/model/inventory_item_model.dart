@@ -9,6 +9,7 @@ class InventoryItemModel {
   double? marketPrice;
   String serialNumber;
   double? sellingPrice;
+  double? currentSellingPrice;
   bool isSold;
   InventoryItemModel({
     this.id,
@@ -16,6 +17,7 @@ class InventoryItemModel {
     this.productName,
     this.marketPrice,
     this.inventoryID,
+    this.currentSellingPrice,
     required this.isSold,
     required this.productId,
     required this.serialNumber,
@@ -28,6 +30,7 @@ class InventoryItemModel {
       inventoryID: map[INVENTORY_ID],
       isSold: map[IS_SOLD] == 1,
       productName: map[PRODUCT_NAME],
+      currentSellingPrice: map[PRICE],
       marketPrice: map[MARKET_RATE],
       costPerUnit :map[COST_PER_UNIT],
       productId: map[PRODUCT_ID],
@@ -52,6 +55,7 @@ class InventoryItemModel {
     double? costPerUnit,
     String? serialNumber,
     double? sellingPrice,
+    double? currentSellingPrice,
     bool? isSold
   }) {
     return InventoryItemModel(
@@ -63,6 +67,7 @@ class InventoryItemModel {
       costPerUnit: costPerUnit ?? this.costPerUnit,
       marketPrice: marketPrice,
       sellingPrice: sellingPrice ?? this.sellingPrice,
+      currentSellingPrice: currentSellingPrice ?? this.currentSellingPrice,
     );
   }
 }

@@ -14,7 +14,7 @@ import '../screens/admin/category/categories.dart';
 import '../screens/admin/dashboard_screen.dart';
 import '../screens/admin/discountgroup/assign_discount_group.dart';
 import '../screens/admin/discountgroup/discount_groups_screen.dart';
-import '../screens/admin/inventory/all_inventory_items.dart';
+import '../screens/admin/inventory/inventory_screen.dart';
 import '../screens/admin/new arrivals/receive_po_screen.dart';
 import '../screens/admin/order/all_orders_screen.dart';
 import '../screens/admin/product/products.dart';
@@ -26,7 +26,7 @@ import 'confirm_dialog.dart';
 
 class AdminDrawer extends StatelessWidget {
   AdminDrawer({super.key});
-  final AuthController authController = Get.put(AuthController());
+  final authController = Get.find<AuthController>();
   final userController = Get.put(UserController());
   final poController = Get.put(PurchaseOrderController());
   final dashboardController = Get.put(DashboardController());
@@ -34,9 +34,7 @@ class AdminDrawer extends StatelessWidget {
   final productController = Get.put(ProductController());
   final supplierController = Get.put(SupplierController());
   final inventoryController = Get.put(InventoryController());
-  final DiscountGroupController discountGroupController = Get.put(
-    DiscountGroupController(),
-  );
+  final discountGroupController = Get.put(DiscountGroupController());
 
   @override
   Widget build(BuildContext context) {
@@ -119,8 +117,8 @@ class AdminDrawer extends StatelessWidget {
             ListTile(
               onTap: () async {
                 categoryController.searchQuery = "";
-                await categoryController.fetchAllCategories(isInitial: true);
                 Get.to(() => Categories());
+                await categoryController.fetchAllCategories(isInitial: true);
               },
               leading: Icon(Icons.category),
               title: Text('Categories', style: AppTextStyle.lableStyle),
@@ -135,7 +133,6 @@ class AdminDrawer extends StatelessWidget {
             ListTile(
               onTap: () async {
                 productController.reset();
-
                 Get.to(() => ProductsScreen());
               },
               leading: Icon(Icons.shopping_bag_outlined),

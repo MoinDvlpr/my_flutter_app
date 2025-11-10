@@ -22,8 +22,8 @@ class CategoryController extends GetxController {
 
   @override
   Future<void> onInit() async {
-    super.onInit();
     pagingController.refresh();
+    super.onInit();
   }
 
   @override
@@ -76,11 +76,6 @@ class CategoryController extends GetxController {
     int? page,
   }) async {
     try {
-      // if (isInitial) {
-      //   currentPage.value = 0;
-      //   categories.clear();
-      // }
-
       isLoading.value = true;
       String? query = searchQuery.trim().isNotEmpty ? searchQuery : null;
       final newCategories = await DatabaseHelper.instance.getAllCategories(

@@ -1,139 +1,142 @@
 // confirm_price_dialog.dart
-// GetX-based delayed confirmation dialog for auto price changes (without constants file)
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'app_textstyles.dart';
+import 'app_colors.dart';
 
+/// Controller to handle delayed showing of confirm price dialog
 class ConfirmPriceController extends GetxController {
   final RxBool _isDialogShown = false.obs;
 
+  /// Starts a delayed confirmation dialog after a [delay]
   void startDelayedConfirm({
     Duration delay = const Duration(seconds: 2),
     required VoidCallback onAccept,
     VoidCallback? onCancel,
   }) {
-    if (_isDialogShown.value) return;
-
+    if (_isDialogShown.value) return; // prevent multiple dialogs
     _isDialogShown.value = true;
 
-    Timer(delay, () {
-      if (Get.isDialogOpen ?? false) return; // prevent multiple dialogs
+    Timer(delay, () async {
+      if (Get.isDialogOpen ?? false) return;
+      if (!Get.context!.mounted)
+        return; // prevent showing when widget unmounted
 
-      Get.dialog(
-        ConfirmPriceDialog(
-          onAccept: () {
-            _isDialogShown.value = false;
-            Get.back();
-            onAccept();
-          },
-          onCancel: () {
-            _isDialogShown.value = false;
-            Get.back();
-            if (onCancel != null) onCancel();
-          },
-        ),
-        barrierDismissible: false,
+      await showConfirmPriceDialog(
+        onApply: () {
+          _isDialogShown.value = false;
+          onAccept();
+        },
+        onCancel: () {
+          _isDialogShown.value = false;
+          if (onCancel != null) onCancel();
+        },
       );
     });
   }
-}
-
-class ConfirmPriceDialog extends StatelessWidget {
-  final VoidCallback onAccept;
-  final VoidCallback onCancel;
-
-  const ConfirmPriceDialog({
-    Key? key,
-    required this.onAccept,
-    required this.onCancel,
-  }) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Confirm automatic price change',
-                    style: AppTextStyle.semiBoldTextstyle,
-                  ),
-                ),
-                IconButton(onPressed: onCancel, icon: const Icon(Icons.close)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'We have automatically adjusted the selling price based on current market conditions and stock levels.\n\n'
-                  'Would you like to apply new selling price now?\n\n'
-                  'If you accept, the updated price will be used for future sales,\n\n'
-                  'you can change prices manually after accept.',
-              style: AppTextStyle.regularTextstyle.copyWith(fontSize: 12),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    onPressed: onAccept,
-                    child: Text(
-                      'Apply',
-                      style: AppTextStyle.lableStyle.copyWith(color: Colors.white),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      side: const BorderSide(color: Colors.red),
-                    ),
-                    onPressed: onCancel,
-                    child: Text(
-                      'Cancel',
-                      style: AppTextStyle.lableStyle,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
+  void onClose() {
+    _isDialogShown.value = false;
+    super.onClose();
   }
 }
 
-// ==================== USAGE EXAMPLE ====================
-/*
-final confirmController = Get.put(ConfirmPriceController());
-
-confirmController.startDelayedConfirm(
-  delay: Duration(seconds: 3), // optional, default = 2
-  onAccept: () {
-    Get.snackbar('Price updated', 'Selling price accepted and saved');
-  },
-  onCancel: () {
-    Get.snackbar('No change', 'Selling price left unchanged');
-  },
-);
-*/
+/// Modern confirm price dialog with custom UI
+/// User must select an option - cannot dismiss by swiping or tapping outside
+Future<void> showConfirmPriceDialog({
+  required VoidCallback onApply,
+  VoidCallback? onCancel,
+}) async {
+  Get.dialog(
+    WillPopScope(
+      onWillPop: () async => false, // Prevent back button dismissal
+      child: Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.price_change_rounded, color: primary, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                "Confirm Best Price",
+                style: AppTextStyle.semiBoldTextstyle.copyWith(
+                  fontSize: 18,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                "We've set the best possible price for you.\nDo you want to accept this price?",
+                textAlign: TextAlign.center,
+                style: AppTextStyle.lableStyle.copyWith(
+                  fontSize: 14,
+                  color: Colors.grey[700],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Get.back();
+                        if (onCancel != null) onCancel();
+                      },
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: Colors.grey.shade400),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: Text(
+                        "Cancel",
+                        style: AppTextStyle.semiBoldTextstyle.copyWith(
+                          color: Colors.grey[700],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Get.back();
+                        onApply();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: Text(
+                        "Apply",
+                        style: AppTextStyle.semiBoldTextstyle.copyWith(
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+    barrierDismissible: false, // Prevent dismissal by tapping outside
+  );
+}

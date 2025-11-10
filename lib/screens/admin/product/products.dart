@@ -19,7 +19,7 @@ import 'product_detail.dart';
 class ProductsScreen extends StatelessWidget {
   ProductsScreen({super.key});
   final productController = Get.find<ProductController>();
-  final CategoryController categoryController = Get.put(CategoryController());
+  final categoryController = Get.find<CategoryController>();
   final _debouncer = Debouncer(delay: Duration(microseconds: 500));
   @override
   Widget build(BuildContext context) {

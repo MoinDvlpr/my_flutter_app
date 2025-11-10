@@ -18,8 +18,8 @@ class DiscountGroupController extends GetxController {
 
   @override
   void onInit() async {
-    super.onInit();
     pagingController.refresh();
+    super.onInit();
   }
 
   @override

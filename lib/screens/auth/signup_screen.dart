@@ -10,7 +10,7 @@ import 'login_screen.dart';
 
 class SignUpScreen extends StatelessWidget {
   SignUpScreen({super.key});
-  final AuthController authController = Get.put(AuthController());
+  final authController = Get.find<AuthController>();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override

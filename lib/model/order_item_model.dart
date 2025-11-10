@@ -6,7 +6,7 @@ class OrderItemModel {
   final int orderId;
   final String itemName;
   final String itemImage;
-  final String srNo;
+  final List<String> serialNumbers; // <— store list here
   final String? itemDescription;
   final double? marketPrice;
   final double itemPrice;
@@ -20,7 +20,7 @@ class OrderItemModel {
     this.discountPercentage,
     required this.productID,
     required this.orderId,
-    required this.srNo,
+    required this.serialNumbers, // updated
     required this.itemName,
     required this.itemImage,
     required this.itemPrice,
@@ -34,7 +34,9 @@ class OrderItemModel {
       productID: map[PRODUCT_ID],
       orderId: map[ORDERID],
       itemName: map[ITEM_NAME],
-      srNo: map[SERIAL_NUMBER],
+      serialNumbers: map[SERIAL_NUMBERS] != null
+          ? (map[SERIAL_NUMBERS] as String).split(',')
+          : [],
       itemImage: map[ITEM_IMAGE],
       itemDescription: map[ITEM_DESCRIPTION],
       itemPrice: map[ITEM_PRICE] is int
@@ -52,7 +54,7 @@ class OrderItemModel {
       ITEM_NAME: itemName,
       ITEM_IMAGE: itemImage,
       DISCOUNT_PERCENTAGE: discountPercentage,
-      SERIAL_NUMBER: srNo,
+      SERIAL_NUMBERS: serialNumbers.join(','), // convert list → string
       ITEM_DESCRIPTION: itemDescription,
       ITEM_PRICE: itemPrice,
       ITEM_QTY: itemQty,

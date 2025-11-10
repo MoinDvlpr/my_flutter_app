@@ -8,8 +8,8 @@ import 'package:intl/intl.dart';
 import 'package:my_flutter_app/utils/app_constant.dart';
 import 'package:my_flutter_app/utils/app_textstyles.dart';
 import '../../controllers/dashboard_controller.dart';
+import '../../controllers/product_controller.dart';
 import '../../utils/app_colors.dart';
-import '../../utils/dialog_utils.dart';
 import '../../widgets/admin_drawer.dart';
 import '../../widgets/order_summary_chart.dart';
 import '../../widgets/reportchart.dart';
@@ -20,11 +20,10 @@ import 'user/users_screen.dart';
 
 class AdminDashboard extends StatelessWidget {
   AdminDashboard({super.key});
-  final dashboardController = Get.put(DashboardController());
+  final dashboardController = Get.find<DashboardController>();
   @override
   Widget build(BuildContext context) {
     dashboardController.fetchDashboardData();
-
     GetStorage storage = GetStorage();
 
     return Scaffold(
@@ -192,19 +191,28 @@ class AdminDashboard extends StatelessWidget {
                   "Most Selling Products",
                   style: AppTextStyle.boldTextstyle.copyWith(fontSize: 18),
                 ),
-                _itemList(products: dashboardController.topProducts,label: 'Sold'),
+                _itemList(
+                  products: dashboardController.topProducts,
+                  label: 'Sold',
+                ),
                 SizedBox(height: 20),
                 Text(
                   "Top 5 Revenue Products",
                   style: AppTextStyle.boldTextstyle.copyWith(fontSize: 18),
                 ),
-                _itemList(products: dashboardController.topRevenueProducts, label: 'Revenue'),
+                _itemList(
+                  products: dashboardController.topRevenueProducts,
+                  label: 'Revenue',
+                ),
                 SizedBox(height: 20),
                 Text(
                   "Top 5 loss Products",
                   style: AppTextStyle.boldTextstyle.copyWith(fontSize: 18),
                 ),
-                _itemList(products: dashboardController.topRevenueProducts,label: 'Loss'),
+                _itemList(
+                  products: dashboardController.topRevenueProducts,
+                  label: 'Loss',
+                ),
               ],
             ),
           ),
@@ -213,8 +221,7 @@ class AdminDashboard extends StatelessWidget {
     );
   }
 
-  Widget _itemList({required products,required String label}) {
-
+  Widget _itemList({required products, required String label}) {
     return SizedBox(
       height: 300, // Set desired height
       child: ListView.builder(
@@ -312,7 +319,6 @@ class AdminDashboard extends StatelessWidget {
       ),
     );
   }
-
 
   Widget _buildDetailsCard({
     required IconData icon,

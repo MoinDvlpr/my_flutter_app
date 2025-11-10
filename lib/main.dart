@@ -6,6 +6,7 @@ import 'package:get_storage/get_storage.dart';
 import 'package:my_flutter_app/utils/app_constant.dart';
 import 'package:my_flutter_app/utils/app_textstyles.dart';
 import 'package:my_flutter_app/utils/permission_handle_service.dart';
+import 'controllers/auth_controller.dart';
 import 'dbservice/db_helper.dart';
 import 'screens/admin/dashboard_screen.dart';
 import 'screens/auth/signup_screen.dart';
@@ -13,16 +14,22 @@ import 'screens/customer/home/home_screen.dart';
 import 'utils/app_colors.dart';
 
 Future<void> main() async {
-
   log(":::: :::: :::: :::: ::: ::: ::: ::: main called");
   WidgetsFlutterBinding.ensureInitialized();
-  log(":::: :::: :::: :::: ::: ::: ::: :::WidgetsFlutterBinding.ensureInitialized() called");
+  log(
+    ":::: :::: :::: :::: ::: ::: ::: :::WidgetsFlutterBinding.ensureInitialized() called",
+  );
   await DatabaseHelper.instance.database;
-  log(":::: :::: :::: :::: ::: ::: ::: :::DatabaseHelper.instance.database called");
+  log(
+    ":::: :::: :::: :::: ::: ::: ::: :::DatabaseHelper.instance.database called",
+  );
   await GetStorage.init();
   log(":::: :::: :::: :::: ::: ::: ::: :::GetStorage.init() called");
   await PermissionHandler.requestPermission();
-  log(":::: :::: :::: :::: ::: ::: ::: :::PermissionHandler.requestPermission() called");
+  log(
+    ":::: :::: :::: :::: ::: ::: ::: :::PermissionHandler.requestPermission() called",
+  );
+  Get.put(AuthController(), permanent: true);
   runApp(const MyApp());
 }
 
