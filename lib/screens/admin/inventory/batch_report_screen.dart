@@ -84,11 +84,13 @@ class ProductReportScreen extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _buildMetricCard(
-                    label: "Total Revenue",
-                    value:
-                        "₹${controller.totalRevenue.value.toStringAsFixed(2)}",
-                    color: Colors.green,
+                  child: Obx(
+                    () => _buildMetricCard(
+                      label: "Total Revenue",
+                      value:
+                          "₹${controller.totalRevenue.value.toStringAsFixed(2)}",
+                      color: Colors.green,
+                    ),
                   ),
                 ),
               ],
@@ -99,24 +101,28 @@ class ProductReportScreen extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: _buildMetricCard(
-                    label: "Total Cost",
-                    value:
-                        "₹${controller.totalCost.value.abs().toStringAsFixed(2)}",
-                    color: Colors.orange,
+                  child: Obx(
+                    () => _buildMetricCard(
+                      label: "Total Cost",
+                      value:
+                          "₹${controller.totalCost.value.abs().toStringAsFixed(2)}",
+                      color: Colors.orange,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _buildMetricCard(
-                    label: controller.totalProfit.value >= 0
-                        ? "Profit"
-                        : "Loss",
-                    value:
-                        "₹${controller.totalProfit.value.abs().toStringAsFixed(2)}",
-                    color: controller.totalProfit.value >= 0
-                        ? Colors.green
-                        : Colors.red,
+                  child: Obx(
+                    () => _buildMetricCard(
+                      label: controller.totalProfit.value >= 0
+                          ? "Profit"
+                          : "Loss",
+                      value:
+                          "₹${controller.totalProfit.value.abs().toStringAsFixed(2)}",
+                      color: controller.totalProfit.value >= 0
+                          ? Colors.green
+                          : Colors.red,
+                    ),
                   ),
                 ),
               ],
@@ -133,25 +139,27 @@ class ProductReportScreen extends StatelessWidget {
             const SizedBox(height: 12),
 
             /// Batches List
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: controller.reportItems.length,
-              itemBuilder: (context, index) {
-                final batch = controller.reportItems[index];
-                final batchSoldQuantity = batch.soldQty;
-                final batchProfit =
-                    ((batch.sellingPrice ?? 0) - batch.costPrice) *
-                    batchSoldQuantity;
-                return _buildBatchCard(
-                  batchId: batch.batchId.toString(),
-                  remainingQuantity: batch.remaining,
-                  soldQuantity: batchSoldQuantity,
-                  soldAt: batch.sellingPrice ?? 0.0,
+            Obx(
+              () => ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: controller.reportItems.length,
+                itemBuilder: (context, index) {
+                  final batch = controller.reportItems[index];
+                  final batchSoldQuantity = batch.soldQty;
+                  final batchProfit =
+                      ((batch.sellingPrice ?? 0) - batch.costPrice) *
+                      batchSoldQuantity;
+                  return _buildBatchCard(
+                    batchId: batch.batchId ?? 'initial',
+                    remainingQuantity: batch.remaining,
+                    soldQuantity: batchSoldQuantity,
+                    soldAt: batch.sellingPrice ?? 0.0,
 
-                  profit: batchProfit,
-                );
-              },
+                    profit: batchProfit,
+                  );
+                },
+              ),
             ),
           ],
         ),
@@ -204,6 +212,11 @@ class ProductReportScreen extends StatelessWidget {
     required double soldAt,
     required double profit,
   }) {
+    // Calculate profit margin percentage safely
+    final profitMargin = soldAt > 0
+        ? (profit / (soldAt * soldQuantity)) * 100
+        : 0;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
@@ -221,6 +234,7 @@ class ProductReportScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          /// Top Row (Batch ID + Profit Badge)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -241,8 +255,8 @@ class ProductReportScreen extends StatelessWidget {
                 ),
                 child: Text(
                   profit >= 0
-                      ? "+${profit.toStringAsFixed(2)}%"
-                      : "-%${profit.abs().toStringAsFixed(2)}",
+                      ? "₹${profit.toStringAsFixed(2)}"
+                      : "-₹${profit.abs().toStringAsFixed(2)}",
                   style: AppTextStyle.semiBoldTextstyle.copyWith(
                     fontSize: 12,
                     color: profit >= 0 ? Colors.green : Colors.red,
@@ -251,71 +265,40 @@ class ProductReportScreen extends StatelessWidget {
               ),
             ],
           ),
+
           const SizedBox(height: 8),
+
+          /// Info Columns
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Remaining",
-                    style: AppTextStyle.lableStyle.copyWith(
-                      fontSize: 12,
-                      color: grey,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "$remainingQuantity units",
-                    style: AppTextStyle.semiBoldTextstyle.copyWith(
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Sold",
-                    style: AppTextStyle.lableStyle.copyWith(
-                      fontSize: 12,
-                      color: grey,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "$soldQuantity units",
-                    style: AppTextStyle.semiBoldTextstyle.copyWith(
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "Sold At",
-                    style: AppTextStyle.lableStyle.copyWith(
-                      fontSize: 12,
-                      color: grey,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "₹${soldAt.toStringAsFixed(2)}",
-                    style: AppTextStyle.semiBoldTextstyle.copyWith(
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
+              _buildInfoColumn("Remaining", "$remainingQuantity units"),
+              _buildInfoColumn("Sold", "$soldQuantity units"),
+              _buildInfoColumn(
+                "Profit Margin",
+                "${profitMargin.isNaN ? 0 : profitMargin.toStringAsFixed(2)}%",
               ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildInfoColumn(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: AppTextStyle.lableStyle.copyWith(fontSize: 12, color: grey),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: AppTextStyle.semiBoldTextstyle.copyWith(fontSize: 14),
+        ),
+      ],
     );
   }
 }

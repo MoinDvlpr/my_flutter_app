@@ -147,6 +147,7 @@ CREATE TABLE $PURCHASE_ORDERS (
 CREATE TABLE $INVENTORY (
   $INVENTORY_ID INTEGER PRIMARY KEY AUTOINCREMENT,
   $PURCHASE_ORDER_ID INTEGER,
+  $PRODUCT_BATCH INTEGER NOT NULL,
   $PRODUCT_ID INTEGER NOT NULL,
   $REMAINING INTEGER NOT NULL,
   $SELLING_PRICE REAL,
@@ -321,6 +322,7 @@ CREATE TABLE $ORDERS (
           final inventoryId = await db.insert(INVENTORY, {
             PRODUCT_ID: productId,
             PURCHASE_ORDER_ID: null,
+            PRODUCT_BATCH: 1,
             REMAINING: 10, // Initial 10 units
             SELLING_PRICE: (100 + i).toDouble(),
             COST_PER_UNIT: (55 + i).toDouble(),
@@ -920,6 +922,7 @@ CREATE TABLE $ORDERS (
           isReadyForSale: true,
           remaining: product.stockQty,
           productId: result,
+          productBatch: 1,
           purchaseDate: DateTime.now(),
         );
         final inventoryResult = await insertInventory(inventory);
@@ -981,6 +984,13 @@ CREATE TABLE $ORDERS (
         PRODUCTS,
         product.toMap(),
         where: "$PRODUCT_ID=?",
+        whereArgs: [product.productId],
+      );
+
+      await db.update(
+        INVENTORY,
+        {SELLING_PRICE: product.price},
+        where: '$PRODUCT_ID=? AND $REMAINING > 0',
         whereArgs: [product.productId],
       );
       return result;
@@ -2266,144 +2276,6 @@ CREATE TABLE $ORDERS (
     }
   }
 
-  // deduct stock after place order
-  // Future<int?> deductStock({required productID, required int qty}) async {
-  //   try {
-  //     var db = await database;
-  //     final stock = await fetchStock(productID);
-  //     if (stock.isNotEmpty) {
-  //       var result = await db.update(
-  //         PRODUCTS,
-  //         {STOCK_QTY: stock[STOCK_QTY] - qty, SOLD_QTY: stock[SOLD_QTY] + qty},
-  //         where: "$PRODUCT_ID=?",
-  //         whereArgs: [productID],
-  //       );
-  //       return result;
-  //     }
-  //   } catch (e) {
-  //     log("error (deductStock) : : : --> ${e.toString()}");
-  //     return null;
-  //   }
-  //   return null;
-  // }
-
-  // deduct stock after place order
-  // Future<int?> deductStock({required int productID, required int qty}) async {
-  //   try {
-  //     final db = await database;
-  //     await db.transaction((txn) async {
-  //       // Get current product info
-  //       final productResult = await txn.query(
-  //         PRODUCTS,
-  //         columns: [SERIAL_NUMBER, STOCK_QTY, SOLD_QTY],
-  //         where: '$PRODUCT_ID = ?',
-  //         whereArgs: [productID],
-  //       );
-  //       if (productResult.isEmpty) {
-  //         throw Exception('Product not found');
-  //       }
-  //       final product = productResult.first;
-  //       String? currentSr = product[SERIAL_NUMBER] as String?;
-  //       int currentSoldQty = product[SOLD_QTY] as int;
-
-  //       int remaining = qty;
-  //       String activeSr = currentSr ?? '';
-
-  //       while (remaining > 0) {
-  //         // Get current inventory item for active SR
-  //         final invResult = await txn.query(
-  //           INVENTORY_ITEMS,
-  //           where: '$SERIAL_NUMBER = ? AND $PRODUCT_ID = ?',
-  //           whereArgs: [activeSr, productID],
-  //           limit: 1,
-  //         );
-
-  //         Map<String, dynamic>? currentInv;
-  //         if (invResult.isNotEmpty) {
-  //           currentInv = invResult.first;
-  //           int avail = currentInv[INVENTORY_QUANTITY] as int;
-  //           if (avail <= 0) {
-  //             currentInv = null; // Treat as no stock
-  //           }
-  //         }
-
-  //         if (currentInv == null) {
-  //           // No stock in current SR, find next available
-  //           final nextInvResult = await txn.rawQuery(
-  //             '''
-  //             SELECT * FROM $INVENTORY_ITEMS
-  //             WHERE $PRODUCT_ID = ? AND $INVENTORY_QUANTITY > 0
-  //             AND $SERIAL_NUMBER != ?
-  //             ORDER BY $INVENTORY_ITEM_ID ASC
-  //             LIMIT 1
-  //           ''',
-  //             [productID, activeSr],
-  //           );
-
-  //           if (nextInvResult.isEmpty) {
-  //             // No more available inventory
-  //             break;
-  //           }
-
-  //           currentInv = nextInvResult.first;
-  //           activeSr = currentInv[SERIAL_NUMBER] as String;
-
-  //           // Assign new SR to product
-  //           await txn.update(
-  //             PRODUCTS,
-  //             {SERIAL_NUMBER: activeSr},
-  //             where: '$PRODUCT_ID = ?',
-  //             whereArgs: [productID],
-  //           );
-  //         }
-
-  //         // Deduct from current inventory
-  //         int avail = currentInv[INVENTORY_QUANTITY] as int;
-  //         int deductHere = math.min(avail, remaining);
-  //         int newInvQty = avail - deductHere;
-
-  //         await txn.update(
-  //           INVENTORY_ITEMS,
-  //           {INVENTORY_QUANTITY: newInvQty},
-  //           where: '$INVENTORY_ITEM_ID = ?',
-  //           whereArgs: [currentInv[INVENTORY_ITEM_ID]],
-  //         );
-
-  //         remaining -= deductHere;
-
-  //         // If depleted, optionally remove if qty == 0 (but user said no remove sr, but this is inventory, not product sr)
-  //         if (newInvQty == 0) {
-  //           // Leave it as 0, or delete if preferred
-  //           // await txn.delete(INVENTORY_ITEMS, where: '$INVENTORY_ITEM_ID = ?', whereArgs: [currentInv[INVENTORY_ITEM_ID]]);
-  //         }
-  //       }
-
-  //       // Calculate deducted amount
-  //       int deducted = qty - remaining;
-
-  //       if (deducted > 0) {
-  //         // Update product totals
-  //         final newSoldQty = currentSoldQty + deducted;
-  //         final newStockQty = await _getTotalStockFromInventory(txn, productID);
-
-  //         await txn.update(
-  //           PRODUCTS,
-  //           {SOLD_QTY: newSoldQty, STOCK_QTY: newStockQty},
-  //           where: '$PRODUCT_ID = ?',
-  //           whereArgs: [productID],
-  //         );
-  //       }
-  //     });
-
-  //     // Return 1 for success if deducted >0, else 0
-  //     final stock = await fetchStock(productID);
-  //     return (stock[STOCK_QTY] as int) < (stock[STOCK_QTY] + qty) ? 1 : 0;
-  //   } catch (e) {
-  //     log("error (deductStock) : : : --> ${e.toString()}");
-  //     return null;
-  //   }
-  // }
-
   // Helper method to get total stock from inventory
   Future<int> _getTotalStockFromInventory(
     Transaction txn,
@@ -2789,95 +2661,239 @@ CREATE TABLE $ORDERS (
     final result = await db.rawQuery(
       '''
     SELECT 
-      DATE(o.$ORDER_DATE) AS date,
+      DATE(o.$ORDER_DATE) AS order_date,
       SUM(oi.$ITEM_PRICE * oi.$ITEM_QTY) AS total_sales,
-      SUM(poi.$COST_PER_UNIT * oi.$ITEM_QTY) AS total_cost,
-      CASE 
-        WHEN (SUM(oi.$ITEM_PRICE * oi.$ITEM_QTY) - SUM(poi.$COST_PER_UNIT * oi.$ITEM_QTY)) >= 0 
-          THEN (SUM(oi.$ITEM_PRICE * oi.$ITEM_QTY) - SUM(poi.$COST_PER_UNIT * oi.$ITEM_QTY))
-        ELSE 0
-      END AS profit,
-      CASE 
-        WHEN (SUM(oi.$ITEM_PRICE * oi.$ITEM_QTY) - SUM(poi.$COST_PER_UNIT * oi.$ITEM_QTY)) < 0 
-          THEN ABS(SUM(oi.$ITEM_PRICE * oi.$ITEM_QTY) - SUM(poi.$COST_PER_UNIT * oi.$ITEM_QTY))
-        ELSE 0
-      END AS loss
+      SUM(i.$COST_PER_UNIT * oi.$ITEM_QTY) AS total_cost,
+      SUM(oi.$ITEM_PRICE * oi.$ITEM_QTY) - SUM(i.$COST_PER_UNIT * oi.$ITEM_QTY) AS net_profit
     FROM $ORDER_ITEMS oi
     JOIN $ORDERS o ON o.$ORDERID = oi.$ORDERID
-    LEFT JOIN $PURCHASE_ORDER_ITEMS poi 
-      ON poi.$PRODUCT_ID = oi.$PRODUCT_ID 
-      AND poi.$SERIAL_NUMBER = oi.$SERIAL_NUMBER
+    JOIN $PRODUCTS p ON p.$PRODUCT_ID = oi.$PRODUCT_ID
+    JOIN $INVENTORY i ON i.$PRODUCT_ID = p.$PRODUCT_ID
     WHERE DATE(o.$ORDER_DATE) BETWEEN ? AND ?
+      AND o.$ORDER_STATUS IN ('Paid', 'Delivered', 'Shipped')
     GROUP BY DATE(o.$ORDER_DATE)
-    ORDER BY DATE(o.$ORDER_DATE)
-  ''',
+    ORDER BY DATE(o.$ORDER_DATE) ASC
+    ''',
       [startDate, endDate],
     );
-    print(result.toString());
+
+    log('Profit/Loss Report Query Result: $result');
 
     return result.map((e) {
-      return ProfitLossData(
-        DateTime.parse(e['date'] as String),
-        double.tryParse(e['profit'].toString()) ?? 0.0,
-        double.tryParse(e['loss'].toString()) ?? 0.0,
-      );
+      final date = DateTime.parse(e['order_date'] as String);
+      final netProfit = double.tryParse(e['net_profit'].toString()) ?? 0.0;
+
+      final profit = netProfit > 0 ? netProfit : 0.0;
+      final loss = netProfit < 0 ? netProfit.abs() : 0.0;
+
+      log('Date: $date, Profit: $profit, Loss: $loss, Net: $netProfit');
+
+      return ProfitLossData(date, profit, loss);
     }).toList();
   }
 
-  Future<List<ProductModel>> getTop5RevenueProducts() async {
-    final db = await database;
-    final result = await db.rawQuery('''
-    SELECT 
-      p.*,
-      SUM((oi.$ITEM_PRICE - po.$COST_PER_UNIT) * oi.$ITEM_QTY) AS total_revenue
-    FROM $ORDER_ITEMS oi
-    JOIN $ORDERS o ON o.$ORDERID = oi.$ORDERID
-    JOIN $PURCHASE_ORDER_ITEMS po ON po.$SERIAL_NUMBER = oi.$SERIAL_NUMBER
-    JOIN $PRODUCTS p ON p.$PRODUCT_ID = oi.$PRODUCT_ID
-    GROUP BY p.$PRODUCT_ID
-    ORDER BY total_revenue DESC
-    LIMIT 5
-  ''');
-    log("result : : :: : :: : : : :$result");
-    return result.map((e) {
-      final product = ProductModel.fromMap(e);
-      product.totalRevenue =
-          double.tryParse(e['total_revenue'].toString()) ?? 0.0;
-      return product;
-    }).toList();
-  }
+  // Add these updated methods to your DatabaseHelper class
 
-  Future<List<ProductModel>> getTop5LossProducts() async {
+  // Get Top 5 Products by Actual Profit
+  Future<List<ProductModel>> getTop5ProfitProducts() async {
     try {
       final db = await database;
-
       final result = await db.rawQuery('''
-    SELECT 
-      p.*,
-      SUM(
-        CASE 
-          WHEN inv.$COST_PER_UNIT > oi.$ITEM_PRICE 
-            THEN (inv.$COST_PER_UNIT - oi.$ITEM_PRICE) * oi.$ITEM_QTY
-          ELSE 0 
-        END
-      ) AS total_loss
-    FROM $ORDER_ITEMS oi
-    JOIN $ORDERS o ON o.$ORDERID = oi.$ORDERID
-    JOIN $PRODUCTS p ON p.$PRODUCT_ID = oi.$PRODUCT_ID
-    JOIN $INVENTORY inv ON inv.$PRODUCT_ID = oi.$PRODUCT_ID
-    GROUP BY p.$PRODUCT_ID
-    HAVING total_loss > 0
-    ORDER BY total_loss DESC
-    LIMIT 5
-  ''');
-      print("hello world from getTop5LossProducts ${result.toString()}");
+      SELECT 
+        p.*,
+        SUM(oi.$ITEM_QTY) AS total_sold,
+        ROUND(SUM((oi.$ITEM_PRICE - inv.$COST_PER_UNIT) * oi.$ITEM_QTY), 2) AS total_profit,
+        ROUND(
+          (SUM((oi.$ITEM_PRICE - inv.$COST_PER_UNIT) * oi.$ITEM_QTY) / 
+           SUM(inv.$COST_PER_UNIT * oi.$ITEM_QTY)) * 100, 2
+        ) AS profit_percentage
+      FROM $ORDER_ITEMS oi
+      JOIN $ORDERS o ON o.$ORDERID = oi.$ORDERID
+      JOIN $PRODUCTS p ON p.$PRODUCT_ID = oi.$PRODUCT_ID
+      JOIN $INVENTORY_ITEMS ii 
+        ON ii.$SERIAL_NUMBER IN (
+          SELECT TRIM(value) 
+          FROM (
+            SELECT value 
+            FROM (
+              SELECT ',' || oi.$SERIAL_NUMBERS || ',' AS list
+            ) 
+            JOIN (
+              SELECT SUBSTR(list, 1, INSTR(list, ',') - 1) AS value,
+                     SUBSTR(list, INSTR(list, ',') + 1) AS list
+              FROM (SELECT list FROM (SELECT 1))
+              UNION ALL
+              SELECT SUBSTR(list, 1, INSTR(list, ',') - 1),
+                     SUBSTR(list, INSTR(list, ',') + 1)
+              FROM (SELECT list FROM (SELECT 1))
+              WHERE list != ''
+            )
+            WHERE value != ''
+          )
+        )
+      JOIN $INVENTORY inv ON inv.$INVENTORY_ID = ii.$INVENTORY_ID
+      WHERE o.$ORDER_STATUS IN ('Paid', 'Delivered', 'Shipped')
+        AND oi.$ITEM_PRICE > inv.$COST_PER_UNIT
+      GROUP BY p.$PRODUCT_ID
+      HAVING total_profit > 0
+      ORDER BY total_profit DESC
+      LIMIT 5
+    ''');
+
+      log("Top 5 Profit Products: $result");
+
       return result.map((e) {
         final product = ProductModel.fromMap(e);
-        product.totalLoss = double.tryParse(e['total_loss'].toString()) ?? 0.0;
+        product.totalRevenue =
+            double.tryParse(e['total_profit'].toString()) ?? 0.0;
+        product.costPrice =
+            double.tryParse(e['profit_percentage'].toString()) ?? 0.0;
         return product;
       }).toList();
     } catch (e) {
-      log("error(getTop5LossProducts) ::: :::: ::: ${e.toString()}");
+      log("error(getTop5ProfitProducts): ${e.toString()}");
+      return [];
+    }
+  }
+
+  // Get Top 5 Products by Actual Loss
+  Future<List<ProductModel>> getTop5LossProducts() async {
+    try {
+      final db = await database;
+      final result = await db.rawQuery('''
+      SELECT 
+        p.*,
+        SUM(oi.$ITEM_QTY) AS total_sold,
+        ROUND(SUM((inv.$COST_PER_UNIT - oi.$ITEM_PRICE) * oi.$ITEM_QTY), 2) AS total_loss,
+        ROUND(
+          (SUM((inv.$COST_PER_UNIT - oi.$ITEM_PRICE) * oi.$ITEM_QTY) / 
+           SUM(inv.$COST_PER_UNIT * oi.$ITEM_QTY)) * 100, 2
+        ) AS loss_percentage
+      FROM $ORDER_ITEMS oi
+      JOIN $ORDERS o ON o.$ORDERID = oi.$ORDERID
+      JOIN $PRODUCTS p ON p.$PRODUCT_ID = oi.$PRODUCT_ID
+      JOIN $INVENTORY_ITEMS ii 
+        ON ii.$SERIAL_NUMBER IN (
+          SELECT TRIM(value) 
+          FROM (
+            SELECT value 
+            FROM (
+              SELECT ',' || oi.$SERIAL_NUMBERS || ',' AS list
+            ) 
+            JOIN (
+              SELECT SUBSTR(list, 1, INSTR(list, ',') - 1) AS value,
+                     SUBSTR(list, INSTR(list, ',') + 1) AS list
+              FROM (SELECT list FROM (SELECT 1))
+              UNION ALL
+              SELECT SUBSTR(list, 1, INSTR(list, ',') - 1),
+                     SUBSTR(list, INSTR(list, ',') + 1)
+              FROM (SELECT list FROM (SELECT 1))
+              WHERE list != ''
+            )
+            WHERE value != ''
+          )
+        )
+      JOIN $INVENTORY inv ON inv.$INVENTORY_ID = ii.$INVENTORY_ID
+      WHERE o.$ORDER_STATUS IN ('Paid', 'Delivered', 'Shipped')
+        AND oi.$ITEM_PRICE < inv.$COST_PER_UNIT
+      GROUP BY p.$PRODUCT_ID
+      HAVING total_loss > 0
+      ORDER BY total_loss DESC
+      LIMIT 5
+    ''');
+
+      log("Top 5 Loss Products: $result");
+
+      return result.map((e) {
+        final product = ProductModel.fromMap(e);
+        product.totalLoss = double.tryParse(e['total_loss'].toString()) ?? 0.0;
+        product.costPrice =
+            double.tryParse(e['loss_percentage'].toString()) ?? 0.0;
+        return product;
+      }).toList();
+    } catch (e) {
+      log("error(getTop5LossProducts): ${e.toString()}");
+      return [];
+    }
+  }
+
+  // Alternative simpler version using a different approach
+  // This version uses a simpler serial number matching
+  Future<List<ProductModel>> getTop5ProfitProductsSimple() async {
+    try {
+      final db = await database;
+      final result = await db.rawQuery('''
+      SELECT 
+        p.*,
+        COUNT(DISTINCT o.$ORDERID) AS order_count,
+        SUM(oi.$ITEM_QTY) AS total_sold,
+        ROUND(AVG(oi.$ITEM_PRICE - inv.$COST_PER_UNIT) * SUM(oi.$ITEM_QTY), 2) AS total_profit,
+        ROUND(
+          AVG((oi.$ITEM_PRICE - inv.$COST_PER_UNIT) / inv.$COST_PER_UNIT) * 100, 2
+        ) AS profit_percentage
+      FROM $ORDER_ITEMS oi
+      JOIN $ORDERS o ON o.$ORDERID = oi.$ORDERID
+      JOIN $PRODUCTS p ON p.$PRODUCT_ID = oi.$PRODUCT_ID
+      JOIN $INVENTORY inv ON inv.$PRODUCT_ID = p.$PRODUCT_ID
+      WHERE o.$ORDER_STATUS IN ('Paid', 'Delivered', 'Shipped')
+        AND oi.$ITEM_PRICE > inv.$COST_PER_UNIT
+      GROUP BY p.$PRODUCT_ID
+      HAVING total_profit > 0
+      ORDER BY total_profit DESC
+      LIMIT 5
+    ''');
+
+      log("Top 5 Profit Products (Simple): $result");
+
+      return result.map((e) {
+        final product = ProductModel.fromMap(e);
+        product.totalRevenue =
+            double.tryParse(e['total_profit'].toString()) ?? 0.0;
+        product.costPrice =
+            double.tryParse(e['profit_percentage'].toString()) ?? 0.0;
+        return product;
+      }).toList();
+    } catch (e) {
+      log("error(getTop5ProfitProductsSimple): ${e.toString()}");
+      return [];
+    }
+  }
+
+  Future<List<ProductModel>> getTop5LossProductsSimple() async {
+    try {
+      final db = await database;
+      final result = await db.rawQuery('''
+      SELECT 
+        p.*,
+        COUNT(DISTINCT o.$ORDERID) AS order_count,
+        SUM(oi.$ITEM_QTY) AS total_sold,
+        ROUND(AVG(inv.$COST_PER_UNIT - oi.$ITEM_PRICE) * SUM(oi.$ITEM_QTY), 2) AS total_loss,
+        ROUND(
+          AVG((inv.$COST_PER_UNIT - oi.$ITEM_PRICE) / inv.$COST_PER_UNIT) * 100, 2
+        ) AS loss_percentage
+      FROM $ORDER_ITEMS oi
+      JOIN $ORDERS o ON o.$ORDERID = oi.$ORDERID
+      JOIN $PRODUCTS p ON p.$PRODUCT_ID = oi.$PRODUCT_ID
+      JOIN $INVENTORY inv ON inv.$PRODUCT_ID = p.$PRODUCT_ID
+      WHERE o.$ORDER_STATUS IN ('Paid', 'Delivered', 'Shipped')
+        AND oi.$ITEM_PRICE < inv.$COST_PER_UNIT
+      GROUP BY p.$PRODUCT_ID
+      HAVING total_loss > 0
+      ORDER BY total_loss DESC
+      LIMIT 5
+    ''');
+
+      log("Top 5 Loss Products (Simple): $result");
+
+      return result.map((e) {
+        final product = ProductModel.fromMap(e);
+        product.totalLoss = double.tryParse(e['total_loss'].toString()) ?? 0.0;
+        product.costPrice =
+            double.tryParse(e['loss_percentage'].toString()) ?? 0.0;
+        return product;
+      }).toList();
+    } catch (e) {
+      log("error(getTop5LossProductsSimple): ${e.toString()}");
       return [];
     }
   }
@@ -3014,16 +3030,16 @@ JOIN $PRODUCTS p
             [productID],
           );
           if (result.isEmpty) {
-            throw Exception('Insufficient stock for product ID: $productID');
+            log('Insufficient stock for product ID: $productID');
           }
           var row = result.first;
-          int itemId = row['$INVENTORY_ITEM_ID'] as int;
-          String serial = row['$SERIAL_NUMBER'] as String;
-          int invId = row['$INVENTORY_ID'] as int;
-          int currentRemaining = row['$REMAINING'] as int;
+          int itemId = row[INVENTORY_ITEM_ID] as int;
+          String serial = row[SERIAL_NUMBER] as String;
+          int invId = row[INVENTORY_ID] as int;
+          int currentRemaining = row[REMAINING] as int;
 
           if (currentRemaining <= 0) {
-            throw Exception(
+            log(
               'Inventory remaining is zero or negative for product ID: $productID',
             );
           }
@@ -3031,12 +3047,12 @@ JOIN $PRODUCTS p
           // Mark the item as sold
           int updatedItemRows = await txn.update(
             INVENTORY_ITEMS,
-            {'$IS_SOLD': 1},
+            {IS_SOLD: 1},
             where: '$INVENTORY_ITEM_ID = ?',
             whereArgs: [itemId],
           );
           if (updatedItemRows != 1) {
-            throw Exception('Failed to mark inventory item as sold');
+            log('Failed to mark inventory item as sold');
           }
 
           // Decrement remaining in the parent inventory
@@ -3045,7 +3061,7 @@ JOIN $PRODUCTS p
             [invId],
           );
           if (updatedInvRows != 1) {
-            throw Exception('Failed to update inventory remaining');
+            log('Failed to update inventory remaining');
           }
 
           serials.add(serial);
@@ -3056,13 +3072,13 @@ JOIN $PRODUCTS p
           [qty, qty, productID],
         );
         if (updatedProductRows != 1) {
-          throw Exception('Failed to update product stock/sold quantities');
+          log('Failed to update product stock/sold quantities');
         }
       });
       return serials;
     } catch (e) {
       log("Error deducting stock for product $productID: ${e.toString()}");
-      rethrow; // Re-throw to handle in the calling function
+      return [];
     }
   }
 
@@ -3131,11 +3147,13 @@ JOIN $PRODUCTS p
       if (productResult.isEmpty) return null;
 
       final productData = productResult.first;
+      log("report result = ${invResults.toString()}");
       return ProductReportModel(
         productId: productId,
         productName: productData[PRODUCT_NAME].toString(),
         marketRate: double.parse(productData[MARKET_RATE].toString() ?? '0.0'),
         averageCost: avgCost,
+        totalCost: totalCost,
         averageSellingPrice: avgSelling,
         totalBatches: items.length,
         totalSoldQty: totalSold,
@@ -3150,20 +3168,45 @@ JOIN $PRODUCTS p
   }
 
   // get out of stock product
-  Future<List<ProductModel>> getOutOfStockProducts({
+  Future<List<ProductModel>> getProducts({
     int limit = 20,
     int offset = 0,
+    bool forOutOfStock = false,
   }) async {
     try {
       final db = await database;
+      String whereString = "";
+      if (forOutOfStock) {
+        whereString = " WHERE $STOCK_QTY = 0";
+      }
       final results = await db.rawQuery(
-        'SELECT * FROM $PRODUCTS WHERE $STOCK_QTY = 0 LIMIT ? OFFSET ?',
+        'SELECT * FROM $PRODUCTS $whereString LIMIT ? OFFSET ?',
         [limit, offset],
       );
+
       return results.map((e) => ProductModel.fromMap(e)).toList();
     } catch (e) {
       log('Error getting out of stock products: ${e.toString()}');
       return [];
+    }
+  }
+
+  // get last most batch if not return 1
+  Future<int> getProductLastBatch({required int productID}) async {
+    try {
+      final db = await database;
+      final result = await db.rawQuery(
+        '''SELECT MAX($PRODUCT_BATCH) as max_batch FROM $INVENTORY WHERE $PRODUCT_ID = ?''',
+        [productID],
+      );
+      if (result.isNotEmpty) {
+        return int.parse(result[0]['max_batch'].toString() ?? '1');
+      } else {
+        return 1;
+      }
+    } catch (e) {
+      log("Error getting product last batch: ${e.toString()}");
+      return 0;
     }
   }
 }

@@ -2,7 +2,6 @@
 
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get_connect/http/src/utils/utils.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 
 import '../dbservice/db_helper.dart';
@@ -22,19 +21,19 @@ class InventoryController extends GetxController
         fetchPage: (pageKey) => fetchInventories(pageKey: pageKey),
       );
 
-  final PagingController<int, InventoryModel> pagingControllerForInSale =
-      PagingController<int, InventoryModel>(
+  final PagingController<int, ProductModel> pagingControllerForAllProducts =
+      PagingController<int, ProductModel>(
         getNextPageKey: (state) =>
             state.lastPageIsEmpty ? null : state.nextIntPageKey,
-        fetchPage: (pageKey) =>
-            fetchInventories(pageKey: pageKey, isInsale: true),
+        fetchPage: (pageKey) => fetchProducts(pageKey: pageKey),
       );
 
   final PagingController<int, ProductModel> pagingControllerForSoldOuts =
       PagingController<int, ProductModel>(
         getNextPageKey: (state) =>
             state.lastPageIsEmpty ? null : state.nextIntPageKey,
-        fetchPage: (pageKey) => fetchOutOfStockProducts(pageKey: pageKey),
+        fetchPage: (pageKey) =>
+            fetchProducts(pageKey: pageKey, isForOutOfStock: true),
       );
 
   // Product data
@@ -49,6 +48,9 @@ class InventoryController extends GetxController
   // NEW: Store all inventory batches for the product
   List<InventoryModel> productInventoryBatches = [];
   int? currentProductId;
+
+  // NEW: Track if price is auto-calculated in challenging scenario
+  final isAutoCalculatedPrice = false.obs;
 
   // Reactive fields
   final priceController = TextEditingController();
@@ -119,8 +121,8 @@ class InventoryController extends GetxController
       final wac = calculateWeightedAverageCost(productInventoryBatches);
       weightedAverageCost.value = wac;
 
-      // Use WAC as the cost price for calculations
-      costPrice.value = wac;
+      // Check if this is a challenging scenario (cost > market)
+      isAutoCalculatedPrice.value = wac > marketPrice.value;
 
       // Calculate recommended selling price using WAC
       final difference = marketPrice.value - wac;
@@ -161,15 +163,17 @@ class InventoryController extends GetxController
     productName.value = inventory.productName ?? 'undefined';
     marketPrice.value = inventory.marketPrice ?? 0.0;
     currentSellingPrice.value = inventory.currentSellingPrice ?? 0.0;
+    // Original logic for non-inventory flow
+    costPrice.value = inventory.costPerUnit;
 
     // NEW: If from inventory, fetch all batches and calculate WAC
-    if (isFromInventory && inventory.productId != null) {
-      await fetchAndCalculateWACPricing(inventory.productId!);
+    if (inventory.productId != null) {
+      await fetchAndCalculateWACPricing(inventory.productId);
       return; // Early return as WAC calculation handles the rest
     }
 
-    // Original logic for non-inventory flow
-    costPrice.value = inventory.costPerUnit;
+    // Check if this is a challenging scenario for non-inventory flow
+    isAutoCalculatedPrice.value = costPrice.value > marketPrice.value;
 
     if (!(isFromInventory && inventory.sellingPrice == null)) {
       if (costPrice.value > 0) {
@@ -243,28 +247,8 @@ class InventoryController extends GetxController
     );
     profitMargin.value = clampedMargin;
 
-    // Determine status
-    if (price < costPrice.value) {
-      statusMessage.value = "Loss! Price is below weighted average cost.";
-      statusColor.value = Colors.red;
-      statusIcon.value = Icons.trending_down;
-    } else if (price > marketPrice.value) {
-      statusMessage.value = "Above market price, might affect sales.";
-      statusColor.value = Colors.blue;
-      statusIcon.value = Icons.info;
-    } else if ((profitPercent.value ?? 0.0) < 5) {
-      statusMessage.value = "Very low margin, consider increasing.";
-      statusColor.value = Colors.orange;
-      statusIcon.value = Icons.warning;
-    } else if ((profitPercent.value ?? 0.0) <= 20) {
-      statusMessage.value = "Balanced and competitive.";
-      statusColor.value = Colors.green;
-      statusIcon.value = Icons.check_circle;
-    } else {
-      statusMessage.value = "Good profit margin.";
-      statusColor.value = Colors.green;
-      statusIcon.value = Icons.trending_up;
-    }
+    // Determine status with special handling for auto-calculated loss scenarios
+    _updatePriceStatus(price);
 
     showPriceStatus.value = true;
     if (!animationController.isAnimating) {
@@ -297,34 +281,56 @@ class InventoryController extends GetxController
 
   void calculatePrice() {
     final price = newSellingPrice.value ?? 0.0;
-    final profit = profitPercent.value ?? 0.0;
-
-    // Determine status
-    if (price < costPrice.value) {
-      statusMessage.value = "Loss! Price is below weighted average cost.";
-      statusColor.value = Colors.red;
-      statusIcon.value = Icons.trending_down;
-    } else if (price > marketPrice.value) {
-      statusMessage.value = "Above market price, might affect sales.";
-      statusColor.value = Colors.blue;
-      statusIcon.value = Icons.info;
-    } else if (profit < 5) {
-      statusMessage.value = "Very low margin, consider increasing.";
-      statusColor.value = Colors.orange;
-      statusIcon.value = Icons.warning;
-    } else if (profit <= 20) {
-      statusMessage.value = "Balanced and competitive.";
-      statusColor.value = Colors.green;
-      statusIcon.value = Icons.check_circle;
-    } else {
-      statusMessage.value = "Good profit margin.";
-      statusColor.value = Colors.green;
-      statusIcon.value = Icons.trending_up;
-    }
+    _updatePriceStatus(price);
 
     showPriceStatus.value = true;
     if (!animationController.isAnimating) {
       animationController.forward(from: 0.0);
+    }
+  }
+
+  /// NEW: Centralized status update logic
+  void _updatePriceStatus(double price) {
+    final profit = profitPercent.value ?? 0.0;
+    final isCostAboveMarket = costPrice.value > marketPrice.value;
+    final isPriceBelowCost = price < costPrice.value;
+
+    // Special case: Auto-calculated price when cost > market (minimize loss scenario)
+    if (isCostAboveMarket && isAutoCalculatedPrice.value && !isPriceBelowCost) {
+      statusMessage.value =
+          "Price optimized to minimize loss given cost exceeds market price";
+      statusColor.value = Colors.blue;
+      statusIcon.value = Icons.lightbulb_outline;
+    }
+    // Loss scenario (price below cost)
+    else if (isPriceBelowCost) {
+      statusMessage.value = "Loss! Price is below cost.";
+      statusColor.value = Colors.red;
+      statusIcon.value = Icons.trending_down;
+    }
+    // Price above market
+    else if (price > marketPrice.value) {
+      statusMessage.value = "Above market price, might affect sales.";
+      statusColor.value = Colors.blue;
+      statusIcon.value = Icons.info;
+    }
+    // Very low margin
+    else if (profit < 5) {
+      statusMessage.value = "Very low margin, consider increasing.";
+      statusColor.value = Colors.orange;
+      statusIcon.value = Icons.warning;
+    }
+    // Balanced margin
+    else if (profit <= 20) {
+      statusMessage.value = "Balanced and competitive.";
+      statusColor.value = Colors.green;
+      statusIcon.value = Icons.check_circle;
+    }
+    // Good margin
+    else {
+      statusMessage.value = "Good profit margin.";
+      statusColor.value = Colors.green;
+      statusIcon.value = Icons.trending_up;
     }
   }
 
@@ -356,7 +362,7 @@ class InventoryController extends GetxController
 
         if (successCount > 0) {
           pagingController.refresh();
-          pagingControllerForInSale.refresh();
+          pagingControllerForAllProducts.refresh();
           Get.back(result: true);
           Get.back(result: true);
           if (!isFromInventory) {
@@ -375,6 +381,8 @@ class InventoryController extends GetxController
         final result = await DatabaseHelper.instance.updateInventory(inventory);
 
         if (result != 0) {
+          pagingController.refresh();
+          pagingControllerForAllProducts.refresh();
           Get.back(result: true);
           Get.off(() => InventoryScreen());
           AppSnackbars.success("Success", "Selling price updated successfully");
@@ -415,12 +423,14 @@ class InventoryController extends GetxController
   RxList<ReportItemModel> reportItems = <ReportItemModel>[].obs;
 
   //// fetch out of stock products
-  static Future<List<ProductModel>> fetchOutOfStockProducts({
+  static Future<List<ProductModel>> fetchProducts({
     required int pageKey,
+    bool isForOutOfStock = false,
   }) async {
-    return await DatabaseHelper.instance.getOutOfStockProducts(
+    return await DatabaseHelper.instance.getProducts(
       limit: 20,
       offset: (pageKey - 1) * 20,
+      forOutOfStock: isForOutOfStock,
     );
   }
 
@@ -435,6 +445,7 @@ class InventoryController extends GetxController
     report = await DatabaseHelper.instance.getProductReport(productID);
     totalRevenue.value = report!.totalRevenue;
     totalProfit.value = report!.totalProfit;
+    totalCost.value = report!.totalCost;
 
     if (report != null) {
       reportItems.assignAll(report!.reportItems);
@@ -461,6 +472,7 @@ class InventoryController extends GetxController
 
     productInventoryBatches = [];
     currentProductId = null;
+    isAutoCalculatedPrice.value = false;
   }
 
   @override

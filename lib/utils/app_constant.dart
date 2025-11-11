@@ -118,6 +118,7 @@ const String INVENTORY = "inventory";
 const String INVENTORY_ID = "inventory_id";
 const String REMAINING = "remaining";
 const String PURCHASE_DATE = "purchase_date";
+const String PRODUCT_BATCH = "product_batch";
 
 // const String CATEGORY_NAME = "";
 

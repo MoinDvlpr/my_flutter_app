@@ -216,9 +216,14 @@ class PurchaseOrderController extends GetxController
     try {
       isLoading.value = true;
       final db = DatabaseHelper.instance;
+      int batch = await db.getProductLastBatch(productID: po.productID);
+      if (batch <= 0) {
+        return;
+      }
       final inventory = InventoryModel(
         costPerUnit: po.costPerUnit,
-        isReadyForSale: false,
+        productBatch: batch + 1,
+        isReadyForSale: true,
         remaining: po.totalQty,
         productId: po.productID,
         purchaseOrderID: po.id,

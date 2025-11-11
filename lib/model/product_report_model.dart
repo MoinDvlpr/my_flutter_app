@@ -12,6 +12,7 @@ class ProductReportModel {
   final int totalRemaining;
   final double totalRevenue;
   final double totalProfit;
+  final double totalCost;
   final List<ReportItemModel> reportItems;
 
   ProductReportModel({
@@ -25,6 +26,7 @@ class ProductReportModel {
     required this.totalRemaining,
     required this.totalRevenue,
     required this.totalProfit,
+    required this.totalCost,
     required this.reportItems,
   });
 
@@ -36,6 +38,7 @@ class ProductReportModel {
       productId: map[PRODUCT_ID],
       productName: map[PRODUCT_NAME] ?? '',
       marketRate: (map[MARKET_RATE] ?? 0.0).toDouble(),
+      totalCost: (map['total_cost'] ?? 0.0).toDouble(),
       averageCost: (map['average_cost'] ?? 0.0).toDouble(),
       averageSellingPrice: (map['average_selling_price'] ?? 0.0).toDouble(),
       totalBatches: map['total_batches'] ?? items.length,
@@ -59,6 +62,7 @@ class ProductReportModel {
       'total_remaining': totalRemaining,
       'total_revenue': totalRevenue,
       'total_profit': totalProfit,
+      'total_cost': totalCost,
       'report_items': reportItems.map((e) => e.toMap()).toList(),
     };
   }
@@ -90,18 +94,18 @@ class ReportItemModel {
 
   factory ReportItemModel.fromMap(Map<String, dynamic> map) {
     return ReportItemModel(
-      inventoryId: map['inventory_id'],
-      productId: map['product_id'],
-      batchId: map['purchase_order_id']?.toString(),
-      costPrice: (map['cost_per_unit'] ?? 0.0).toDouble(),
-      sellingPrice: map['selling_price'] != null
-          ? (map['selling_price'] as num).toDouble()
+      inventoryId: map[INVENTORY_ID],
+      productId: map[PRODUCT_ID],
+      batchId: map[PRODUCT_BATCH]?.toString(),
+      costPrice: (map[COST_PER_UNIT] ?? 0.0).toDouble(),
+      sellingPrice: map[SELLING_PRICE] != null
+          ? (map[SELLING_PRICE] as num).toDouble()
           : null,
-      remaining: map['remaining'] ?? 0,
-      soldQty: map['sold_qty'] ?? 0,
+      remaining: map[REMAINING] ?? 0,
+      soldQty: map[SOLD_QTY] ?? 0,
       totalRevenue: (map['total_revenue'] ?? 0.0).toDouble(),
       purchaseDate:
-          DateTime.tryParse(map['purchase_date'] ?? '') ?? DateTime.now(),
+          DateTime.tryParse(map[PURCHASE_DATE] ?? '') ?? DateTime.now(),
     );
   }
 

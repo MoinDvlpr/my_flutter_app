@@ -8,7 +8,6 @@ import 'package:intl/intl.dart';
 import 'package:my_flutter_app/utils/app_constant.dart';
 import 'package:my_flutter_app/utils/app_textstyles.dart';
 import '../../controllers/dashboard_controller.dart';
-import '../../controllers/product_controller.dart';
 import '../../utils/app_colors.dart';
 import '../../widgets/admin_drawer.dart';
 import '../../widgets/order_summary_chart.dart';
@@ -197,21 +196,26 @@ class AdminDashboard extends StatelessWidget {
                 ),
                 SizedBox(height: 20),
                 Text(
-                  "Top 5 Revenue Products",
+                  "Top 5 Revenue Making Products",
                   style: AppTextStyle.boldTextstyle.copyWith(fontSize: 18),
                 ),
+                SizedBox(height: 10),
                 _itemList(
                   products: dashboardController.topRevenueProducts,
-                  label: 'Revenue',
+                  label: 'Profit',
+                  isLoss: false,
                 ),
+
                 SizedBox(height: 20),
                 Text(
-                  "Top 5 loss Products",
+                  "Top 5 Loss Making Products",
                   style: AppTextStyle.boldTextstyle.copyWith(fontSize: 18),
                 ),
+                SizedBox(height: 10),
                 _itemList(
-                  products: dashboardController.topRevenueProducts,
+                  products: dashboardController.topLossProducts,
                   label: 'Loss',
+                  isLoss: true,
                 ),
               ],
             ),
@@ -221,102 +225,168 @@ class AdminDashboard extends StatelessWidget {
     );
   }
 
-  Widget _itemList({required products, required String label}) {
+  Widget _itemList({
+    required products,
+    required String label,
+    bool isLoss = false,
+  }) {
     return SizedBox(
-      height: 300, // Set desired height
-      child: ListView.builder(
-        itemCount: products.length,
-        itemBuilder: (context, index) {
-          final product = products[index];
-          List<File> images = [];
-          if (product.productImage.isNotEmpty) {
-            // On load from DB
-            List<String> imagePaths = product.productImage.split(',');
-            images = imagePaths.map((p) => File(p)).toList();
-          }
-          return GestureDetector(
-            onTap: () {
-              Get.to(() => ProductDetail(product: product));
-            },
-            child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                    color: grey.withValues(alpha: 0.1),
-                  ),
-                ],
+      height: 300,
+      child: products.isEmpty
+          ? Center(
+              child: Text(
+                'No data available',
+                style: AppTextStyle.regularTextstyle.copyWith(color: grey),
               ),
-              child: Row(
-                children: [
-                  // Product Image
-                  SizedBox(
-                    height: 60,
-                    width: 60,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: product.productImage.isEmpty
-                          ? Image.asset(
-                              'assets/images/noimg.png',
-                              height: 80,
-                              width: 100,
-                              fit: BoxFit.cover,
-                            )
-                          : Image.file(
-                              images[0],
-                              height: 80,
-                              width: 100,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  Image.asset(
+            )
+          : ListView.builder(
+              itemCount: products.length,
+              itemBuilder: (context, index) {
+                final product = products[index];
+                List<File> images = [];
+
+                if (product.productImage.isNotEmpty) {
+                  List<String> imagePaths = product.productImage.split(',');
+                  images = imagePaths.map((p) => File(p)).toList();
+                }
+
+                // Determine what value to display based on label
+                String displayValue = '';
+                Color valueColor = grey;
+
+                if (label == 'Revenue' || label == 'Profit') {
+                  displayValue =
+                      '₹${product.totalRevenue?.toStringAsFixed(2) ?? '0.00'}';
+                  valueColor = Colors.green;
+                } else if (label == 'Loss') {
+                  displayValue =
+                      '₹${product.totalLoss?.toStringAsFixed(2) ?? '0.00'}';
+                  valueColor = Colors.red;
+                } else if (label == 'Sold') {
+                  displayValue = '${product.soldQty}';
+                  valueColor = grey;
+                }
+
+                // Get percentage if available
+                String percentageText = '';
+                if (product.costPrice != null && product.costPrice! > 0) {
+                  percentageText = isLoss
+                      ? '${product.costPrice!.toStringAsFixed(1)}% loss'
+                      : '${product.costPrice!.toStringAsFixed(1)}% profit';
+                }
+
+                return GestureDetector(
+                  onTap: () {
+                    Get.to(() => ProductDetail(product: product));
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          blurRadius: 8,
+                          spreadRadius: 1,
+                          color: grey.withValues(alpha: 0.1),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        // Product Image
+                        SizedBox(
+                          height: 60,
+                          width: 60,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: product.productImage.isEmpty
+                                ? Image.asset(
                                     'assets/images/noimg.png',
                                     height: 80,
                                     width: 100,
                                     fit: BoxFit.cover,
+                                  )
+                                : Image.file(
+                                    images[0],
+                                    height: 80,
+                                    width: 100,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            Image.asset(
+                                              'assets/images/noimg.png',
+                                              height: 80,
+                                              width: 100,
+                                              fit: BoxFit.cover,
+                                            ),
                                   ),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-
-                  // Name + Price
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          product.productName,
-                          style: AppTextStyle.semiBoldTextstyle.copyWith(
-                            fontSize: 16,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '₹${product.price.toStringAsFixed(0)}',
-                          style: AppTextStyle.regularTextstyle.copyWith(
-                            color: primary,
+                        const SizedBox(width: 12),
+
+                        // Name + Price
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                product.productName,
+                                style: AppTextStyle.semiBoldTextstyle.copyWith(
+                                  fontSize: 16,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '₹${product.price.toStringAsFixed(0)}',
+                                style: AppTextStyle.regularTextstyle.copyWith(
+                                  color: primary,
+                                ),
+                              ),
+                              if (percentageText.isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  percentageText,
+                                  style: AppTextStyle.regularTextstyle.copyWith(
+                                    fontSize: 11,
+                                    color: isLoss ? Colors.red : Colors.green,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
+                        ),
+
+                        // Value (Sold/Profit/Loss)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              label,
+                              style: AppTextStyle.lableStyle.copyWith(
+                                fontSize: 11,
+                                color: grey,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              displayValue,
+                              style: AppTextStyle.semiBoldTextstyle.copyWith(
+                                color: valueColor,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-
-                  // Sold Qty
-                  Text(
-                    '$label: ${product.soldQty}',
-                    style: AppTextStyle.regularTextstyle.copyWith(color: grey),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
-          );
-        },
-      ),
     );
   }
 

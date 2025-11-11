@@ -4,6 +4,7 @@ class InventoryModel {
   int? id;
   int? purchaseOrderID;
   String? productName;
+  int productBatch;
   int productId;
   int remaining;
   double costPerUnit;
@@ -16,6 +17,7 @@ class InventoryModel {
     this.id,
     this.sellingPrice,
     this.purchaseOrderID,
+    required this.productBatch,
     this.productName,
     this.marketPrice,
     this.currentSellingPrice,
@@ -29,6 +31,7 @@ class InventoryModel {
   factory InventoryModel.fromMap(Map<String, dynamic> map) {
     return InventoryModel(
       id: map[INVENTORY_ID],
+      productBatch: map[PRODUCT_BATCH],
       productName: map[PRODUCT_NAME],
       marketPrice: map[MARKET_RATE],
       currentSellingPrice: map[PRICE],
@@ -45,6 +48,7 @@ class InventoryModel {
   Map<String, dynamic> toMap() {
     return {
       INVENTORY_ID: id,
+      PRODUCT_BATCH: productBatch,
       PURCHASE_ORDER_ID: purchaseOrderID,
       REMAINING: remaining,
       PRODUCT_ID: productId,

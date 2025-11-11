@@ -45,22 +45,27 @@ class AddOrEditProductScreen extends StatelessWidget {
                     return null;
                   },
                 ),
-                GlobalTextFormField(
-                  label: "Cost price",
-                  controller: productController.productCostPriceController,
-                  textInputType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
-                  ],
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return "this field is required";
-                    } else if (double.parse(value) <= 0) {
-                      return 'market price must be grater than 0';
-                    } else {
-                      return null;
-                    }
-                  },
+                Visibility(
+                  visible: productID == null,
+                  child: GlobalTextFormField(
+                    label: "Cost price",
+                    controller: productController.productCostPriceController,
+                    textInputType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+                    ],
+                    validator: (value) {
+                      if (productID == null &&
+                          (value == null || value.isEmpty)) {
+                        return "this field is required";
+                      } else if (productID == null &&
+                          (double.parse(value!) <= 0)) {
+                        return 'market price must be grater than 0';
+                      } else {
+                        return null;
+                      }
+                    },
+                  ),
                 ),
                 GlobalTextFormField(
                   label: "Product price",
@@ -96,22 +101,26 @@ class AddOrEditProductScreen extends StatelessWidget {
                     }
                   },
                 ),
-                GlobalTextFormField(
-                  label: "Stock qty",
-                  controller: productController.productStockController,
-                  textInputType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
-                  ],
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return "this field is required";
-                    } else if (int.parse(value) <= 0) {
-                      return 'stock must be grater than 0';
-                    } else {
-                      return null;
-                    }
-                  },
+                Visibility(
+                  visible: productID == null,
+                  child: GlobalTextFormField(
+                    label: "Stock qty",
+                    controller: productController.productStockController,
+                    textInputType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
+                    ],
+                    validator: (value) {
+                      if (productID == null &&
+                          (value == null || value.isEmpty)) {
+                        return "this field is required";
+                      } else if (productID == null && int.parse(value!) <= 0) {
+                        return 'stock must be grater than 0';
+                      } else {
+                        return null;
+                      }
+                    },
+                  ),
                 ),
 
                 GlobalTextFormField(

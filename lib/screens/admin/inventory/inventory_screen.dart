@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
@@ -37,7 +39,7 @@ class InventoryScreen extends StatelessWidget {
               ),
               Tab(
                 child: Text(
-                  "In Sale",
+                  "All Products",
                   style: AppTextStyle.regularTextstyle.copyWith(fontSize: 16),
                 ),
               ),
@@ -54,30 +56,23 @@ class InventoryScreen extends StatelessWidget {
         body: TabBarView(
           children: [
             // Tab 1: All Products
-            _buildProductsList(
-              inventoryController.pagingController,
-              showReportButton: false,
-            ),
+            _buildBatchList(inventoryController.pagingController),
             // Tab 2: In Sale Products
-            _buildProductsList(
-              inventoryController.pagingControllerForInSale,
-              showReportButton: false,
+            _buildProductList(
+              inventoryController.pagingControllerForAllProducts,
             ),
 
             // Tab 3: Sold out Products
-            _buildOutOfStokList(
-              inventoryController.pagingControllerForSoldOuts,
-            ),
+            _buildProductList(inventoryController.pagingControllerForSoldOuts),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildProductsList(
-    PagingController<int, InventoryModel> pagingController, {
-    required bool showReportButton,
-  }) {
+  Widget _buildBatchList(
+    PagingController<int, InventoryModel> pagingController,
+  ) {
     return PagingListener<int, InventoryModel>(
       controller: pagingController,
       builder: (context, state, fetchNextPage) =>
@@ -90,7 +85,7 @@ class InventoryScreen extends StatelessWidget {
                 return _buildProductBatchCard(
                   context,
                   item: item,
-                  showReportButton: showReportButton,
+                  showSoldOut: item.remaining <= 0,
                   index: index,
                 );
               },
@@ -144,7 +139,7 @@ class InventoryScreen extends StatelessWidget {
   Widget _buildProductBatchCard(
     BuildContext context, {
     required InventoryModel item,
-    required bool showReportButton,
+    required bool showSoldOut,
     required int index,
   }) {
     return Container(
@@ -192,7 +187,7 @@ class InventoryScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            "Batch ID: ${item.purchaseOrderID ?? 'initial'}",
+                            "Batch ID: ${item.productBatch}",
                             style: AppTextStyle.lableStyle.copyWith(
                               fontSize: 13,
                               color: grey,
@@ -291,7 +286,7 @@ class InventoryScreen extends StatelessWidget {
                           ),
                         ),
                         child: Text(
-                          "₹${(item.costPerUnit * 1.2).toStringAsFixed(2)}", // Assuming 20% markup for market price
+                          "₹${item.marketPrice?.toStringAsFixed(2)}",
                           style: AppTextStyle.semiBoldTextstyle.copyWith(
                             fontSize: 14,
                             color: Colors.green.shade700,
@@ -343,38 +338,59 @@ class InventoryScreen extends StatelessWidget {
                         ],
                       ),
 
-                      GestureDetector(
-                        onTap: () {
-                          inventoryController.reset();
-                          inventoryController.setData(
-                            inventory: item,
-                            isFromInventory: true,
-                          );
-                          Get.to(
-                            () => CalculatePrice(
-                              inv: item,
-                              isFromInventory: true,
+                      showSoldOut
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 8,
+                                horizontal: 16,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.grey,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                "Sold Out",
+                                style: AppTextStyle.semiBoldTextstyle.copyWith(
+                                  fontSize: 13,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            )
+                          : GestureDetector(
+                              onTap: () {
+                                inventoryController.reset();
+                                inventoryController.setData(
+                                  inventory: item,
+                                  isFromInventory: true,
+                                );
+                                Get.to(
+                                  () => CalculatePrice(
+                                    inv: item,
+                                    isFromInventory: true,
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                  horizontal: 16,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.shade600,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  item.sellingPrice == null
+                                      ? "Calculate"
+                                      : "Modify",
+                                  style: AppTextStyle.semiBoldTextstyle
+                                      .copyWith(
+                                        fontSize: 13,
+                                        color: Colors.white,
+                                      ),
+                                ),
+                              ),
                             ),
-                          );
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 8,
-                            horizontal: 16,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.shade600,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            item.sellingPrice == null ? "Calculate" : "Modify",
-                            style: AppTextStyle.semiBoldTextstyle.copyWith(
-                              fontSize: 13,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -416,7 +432,7 @@ class InventoryScreen extends StatelessWidget {
                 ),
               ),
             )
-          else if (item.remaining == 0)
+          else if (showSoldOut)
             Positioned(
               left: -40,
               top: 10,
@@ -454,7 +470,7 @@ class InventoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOutOfStokList(
+  Widget _buildProductList(
     PagingController<int, ProductModel> pagingController,
   ) {
     return PagingListener<int, ProductModel>(
@@ -520,6 +536,12 @@ class InventoryScreen extends StatelessWidget {
     required ProductModel item,
     required int index,
   }) {
+    List<File> images = [];
+    if (item.productImage.isNotEmpty) {
+      // On load from DB
+      List<String> imagePaths = item.productImage.split(',');
+      images = imagePaths.map((p) => File(p)).toList();
+    }
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
@@ -546,8 +568,8 @@ class InventoryScreen extends StatelessWidget {
                     /// Product Image
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.asset(
-                        item.productImage,
+                      child: Image.file(
+                        images[0],
                         width: 50,
                         height: 50,
                         fit: BoxFit.cover,

@@ -13,13 +13,64 @@ class DashboardController extends GetxController {
   @override
   void onInit() {
     fetchDashboardData();
-    // fetchProfitLossData();
+    fetchProfitLossData();
     fetchMostSellingProducts(isInitial: true);
-    fetchTop5LossProduct();
-    // fetchTop5RevenueProduct();
+
+    fetchTopProfitProducts();
+    fetchTopLossProducts();
     _loadOrderLocations(); // Load order locations on init
     log(":::: :::: :::: :::: ::: ::: ::: ::: on init called");
     super.onInit();
+  }
+
+  // Observable lists
+  final topRevenueProducts = <ProductModel>[].obs;
+  final topLossProducts = <ProductModel>[].obs;
+
+  // Fetch profit products
+  Future<void> fetchTopProfitProducts() async {
+    try {
+      // Try the simple version first as it's more reliable
+      final products = await DatabaseHelper.instance
+          .getTop5ProfitProductsSimple();
+
+      if (products.isEmpty) {
+        // If simple version returns nothing, try the complex version
+        final productsComplex = await DatabaseHelper.instance
+            .getTop5ProfitProducts();
+        topRevenueProducts.value = productsComplex;
+      } else {
+        topRevenueProducts.value = products;
+      }
+
+      log('Fetched ${topRevenueProducts.length} profit products');
+    } catch (e) {
+      log('Error fetching profit products: $e');
+      topRevenueProducts.value = [];
+    }
+  }
+
+  // Fetch loss products
+  Future<void> fetchTopLossProducts() async {
+    try {
+      // Try the simple version first
+      final products = await DatabaseHelper.instance
+          .getTop5LossProductsSimple();
+
+      if (products.isEmpty) {
+        // If simple version returns nothing, try the complex version
+        final productsComplex = await DatabaseHelper.instance
+            .getTop5LossProducts();
+        topLossProducts.value = productsComplex;
+      } else {
+        topLossProducts.value = products;
+      }
+
+      log('Fetched ${topLossProducts.length} loss products');
+    } catch (e) {
+      log('Error fetching loss products: $e');
+      topLossProducts.value = [];
+    }
   }
 
   RxList<ProfitLossData> chartData = <ProfitLossData>[].obs;
@@ -64,8 +115,6 @@ class DashboardController extends GetxController {
   RxDouble delivered = 0.0.obs;
   RxDouble cancelled = 0.0.obs;
   RxList<ProductModel> topProducts = <ProductModel>[].obs;
-  RxList<ProductModel> topRevenueProducts = <ProductModel>[].obs;
-  RxList<ProductModel> topLossProducts = <ProductModel>[].obs;
   RxMap<String, int> orderSummary = <String, int>{}.obs;
 
   // Fetch dashboard data
@@ -76,6 +125,7 @@ class DashboardController extends GetxController {
       totalProducts.value = await db.getTotalProducts();
       totalOrders = await db.getAllOrdersCounts();
       orderSummary.value = await db.getOrderStatusSummary();
+
       if (totalOrders != 0) {
         paid.value = ((orderSummary['Paid'] ?? 0.0) / totalOrders) * 100.0;
         processing.value =
@@ -213,32 +263,6 @@ class DashboardController extends GetxController {
       }
     } catch (e) {
       log("error (fetchMostSellingProducts) : : : : ${e.toString()}");
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  // fetch top 5 products that make highest revenue
-  Future<void> fetchTop5RevenueProduct() async {
-    try {
-      isLoading.value = true;
-      final prods = await DatabaseHelper.instance.getTop5RevenueProducts();
-      topRevenueProducts.assignAll(prods);
-    } catch (e) {
-      log("error (fetchTop5RevenueProduct) : : : : ${e.toString()}");
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  // fetch top 5 products that make loss
-  Future<void> fetchTop5LossProduct() async {
-    try {
-      isLoading.value = true;
-      final prods = await DatabaseHelper.instance.getTop5LossProducts();
-      topLossProducts.assignAll(prods);
-    } catch (e) {
-      log("error (fetchTop5LossProduct) : : : : ${e.toString()}");
     } finally {
       isLoading.value = false;
     }

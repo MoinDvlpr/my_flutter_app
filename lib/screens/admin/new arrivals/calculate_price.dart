@@ -16,19 +16,37 @@ class CalculatePrice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: isFromInventory,
+      canPop: false, // Always prevent default pop
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop) {
-          if (isFromInventory) {
-            Get.back(result: true);
-          } else {
+          // Show dialog if selling price isn't set
+          if (controller.newSellingPrice.value == null) {
             showConfirmDialog(
               message:
-                  "Selling price is'nt set yet\n"
+                  "Selling price isn't set yet\n"
                   "Are you sure you want to continue?",
               title: "Proceed Without Selling Price?",
-              onConfirm: () => Get.off(() => InventoryScreen()),
+              onConfirm: () {
+                controller.pagingController.refresh();
+                controller.pagingControllerForAllProducts.refresh();
+                controller.pagingControllerForSoldOuts.refresh();
+                Get.back(result: true);
+                if (isFromInventory) {
+                  Get.back(result: true);
+                } else {
+                  Get.off(() => InventoryScreen());
+                }
+              },
             );
+          } else {
+            // If price is set, just go back normally
+            controller.pagingController.refresh();
+            controller.pagingControllerForAllProducts.refresh();
+            controller.pagingControllerForSoldOuts.refresh();
+            Get.back(result: true);
+            if (!isFromInventory) {
+              Get.off(() => InventoryScreen());
+            }
           }
         }
       },
@@ -271,7 +289,7 @@ class CalculatePrice extends StatelessWidget {
                       Text(
                         isFromInventory && c.productInventoryBatches.length > 1
                             ? "${c.productInventoryBatches.length} batches"
-                            : "Batch: ${inv.purchaseOrderID ?? 'initial'}",
+                            : "Batch: ${inv.productBatch}",
                         style: AppTextStyle.lableStyle.copyWith(
                           fontSize: 13,
                           color: grey,
@@ -394,6 +412,14 @@ class CalculatePrice extends StatelessWidget {
     return Obx(() {
       final color = c.statusColor.value ?? Colors.grey;
       final icon = c.statusIcon.value ?? Icons.info;
+      final message = c.statusMessage.value ?? '';
+
+      // Check if this is the special minimize-loss scenario
+      final isMinimizeLossScenario =
+          c.isAutoCalculatedPrice.value &&
+          c.costPrice.value > c.marketPrice.value &&
+          (c.newSellingPrice.value ?? 0) >= c.costPrice.value;
+
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(16),
@@ -411,7 +437,7 @@ class CalculatePrice extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    c.statusMessage.value ?? '',
+                    message,
                     style: AppTextStyle.semiBoldTextstyle.copyWith(
                       fontSize: 14,
                       color: color,
@@ -420,6 +446,31 @@ class CalculatePrice extends StatelessWidget {
                 ),
               ],
             ),
+            if (isMinimizeLossScenario) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.tips_and_updates, color: Colors.blue, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        "This price helps reduce losses while staying competitive",
+                        style: AppTextStyle.lableStyle.copyWith(
+                          fontSize: 12,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),

@@ -72,6 +72,7 @@ class AdminDrawer extends StatelessWidget {
             ListTile(
               onTap: () async {
                 Get.to(() => PurchaseOrdersScreen());
+                poController.pagingControllerForReceived.refresh();
               },
               leading: Icon(Icons.inventory_2_outlined),
               title: Text('POs', style: AppTextStyle.lableStyle),
@@ -80,7 +81,6 @@ class AdminDrawer extends StatelessWidget {
               onTap: () async {
                 supplierController.searchQuery = "";
                 Get.to(() => SuppliersScreen());
-                // await userController.fetchAllUsers(isInitial: true);
               },
               leading: Icon(Icons.people),
               title: Text('Suppliers', style: AppTextStyle.lableStyle),
@@ -126,6 +126,9 @@ class AdminDrawer extends StatelessWidget {
             ListTile(
               onTap: () async {
                 Get.to(() => InventoryScreen());
+                inventoryController.pagingController.refresh();
+                inventoryController.pagingControllerForAllProducts.refresh();
+                inventoryController.pagingControllerForSoldOuts.refresh();
               },
               leading: Icon(Icons.storefront_sharp),
               title: Text('Inventory', style: AppTextStyle.lableStyle),

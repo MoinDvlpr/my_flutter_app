@@ -55,9 +55,9 @@ class AuthController extends GetxController {
       storage.write(USERNAME, user[USERNAME]);
       storage.write(EMAIL, user[EMAIL]);
       storage.write(PASSWORD, user[PASSWORD]);
+
       if (user[ROLE] == "admin") {
         Get.put(DashboardController());
-        Get.put(ProductController());
         Get.offAll(() => AdminDashboard());
       } else {
         Get.offAll(() => HomeScreen());
@@ -440,6 +440,7 @@ class AuthController extends GetxController {
       Get.delete<DashboardController>();
     });
     Get.delete<CartController>();
+    Get.delete<ProductController>();
     await storage.erase();
     Get.offAll(() => LoginScreen());
   }

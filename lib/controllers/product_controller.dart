@@ -46,6 +46,7 @@ class ProductController extends GetxController {
       );
   @override
   void onInit() {
+    pagingController.refresh();
     super.onInit();
   }
 
@@ -141,6 +142,8 @@ class ProductController extends GetxController {
         }
         productNameController.text = product!.productName;
         productPriceController.text = product!.price.toString();
+        marketPriceController.text = product!.marketPrice.toString();
+        productCostPriceController.text = product!.costPrice.toString();
         productStockController.text = product!.stockQty.toString();
         productDescController.text = product!.description ?? '';
         setCategoryID = product!.categoryId;
