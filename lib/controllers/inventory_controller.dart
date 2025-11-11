@@ -49,9 +49,6 @@ class InventoryController extends GetxController
   List<InventoryModel> productInventoryBatches = [];
   int? currentProductId;
 
-  // NEW: Track if price is auto-calculated in challenging scenario
-  final isAutoCalculatedPrice = false.obs;
-
   // Reactive fields
   final priceController = TextEditingController();
   final newSellingPrice = RxnDouble();
@@ -121,9 +118,6 @@ class InventoryController extends GetxController
       final wac = calculateWeightedAverageCost(productInventoryBatches);
       weightedAverageCost.value = wac;
 
-      // Check if this is a challenging scenario (cost > market)
-      isAutoCalculatedPrice.value = wac > marketPrice.value;
-
       // Calculate recommended selling price using WAC
       final difference = marketPrice.value - wac;
       final recommendedPrice =
@@ -165,15 +159,11 @@ class InventoryController extends GetxController
     currentSellingPrice.value = inventory.currentSellingPrice ?? 0.0;
     // Original logic for non-inventory flow
     costPrice.value = inventory.costPerUnit;
-
     // NEW: If from inventory, fetch all batches and calculate WAC
     if (inventory.productId != null) {
-      await fetchAndCalculateWACPricing(inventory.productId);
+      await fetchAndCalculateWACPricing(inventory.productId!);
       return; // Early return as WAC calculation handles the rest
     }
-
-    // Check if this is a challenging scenario for non-inventory flow
-    isAutoCalculatedPrice.value = costPrice.value > marketPrice.value;
 
     if (!(isFromInventory && inventory.sellingPrice == null)) {
       if (costPrice.value > 0) {
@@ -247,8 +237,28 @@ class InventoryController extends GetxController
     );
     profitMargin.value = clampedMargin;
 
-    // Determine status with special handling for auto-calculated loss scenarios
-    _updatePriceStatus(price);
+    // Determine status
+    if (price < costPrice.value) {
+      statusMessage.value = "Loss! Price is below weighted average cost.";
+      statusColor.value = Colors.red;
+      statusIcon.value = Icons.trending_down;
+    } else if (price > marketPrice.value) {
+      statusMessage.value = "Above market price, might affect sales.";
+      statusColor.value = Colors.blue;
+      statusIcon.value = Icons.info;
+    } else if ((profitPercent.value ?? 0.0) < 5) {
+      statusMessage.value = "Very low margin, consider increasing.";
+      statusColor.value = Colors.orange;
+      statusIcon.value = Icons.warning;
+    } else if ((profitPercent.value ?? 0.0) <= 20) {
+      statusMessage.value = "Balanced and competitive.";
+      statusColor.value = Colors.green;
+      statusIcon.value = Icons.check_circle;
+    } else {
+      statusMessage.value = "Good profit margin.";
+      statusColor.value = Colors.green;
+      statusIcon.value = Icons.trending_up;
+    }
 
     showPriceStatus.value = true;
     if (!animationController.isAnimating) {
@@ -281,56 +291,34 @@ class InventoryController extends GetxController
 
   void calculatePrice() {
     final price = newSellingPrice.value ?? 0.0;
-    _updatePriceStatus(price);
+    final profit = profitPercent.value ?? 0.0;
+
+    // Determine status
+    if (price < costPrice.value) {
+      statusMessage.value = "Loss! Price is below cost.";
+      statusColor.value = Colors.red;
+      statusIcon.value = Icons.trending_down;
+    } else if (price > marketPrice.value) {
+      statusMessage.value = "Above market price, might affect sales.";
+      statusColor.value = Colors.blue;
+      statusIcon.value = Icons.info;
+    } else if (profit < 5) {
+      statusMessage.value = "Very low margin, consider increasing.";
+      statusColor.value = Colors.orange;
+      statusIcon.value = Icons.warning;
+    } else if (profit <= 20) {
+      statusMessage.value = "Balanced and competitive.";
+      statusColor.value = Colors.green;
+      statusIcon.value = Icons.check_circle;
+    } else {
+      statusMessage.value = "Good profit margin.";
+      statusColor.value = Colors.green;
+      statusIcon.value = Icons.trending_up;
+    }
 
     showPriceStatus.value = true;
     if (!animationController.isAnimating) {
       animationController.forward(from: 0.0);
-    }
-  }
-
-  /// NEW: Centralized status update logic
-  void _updatePriceStatus(double price) {
-    final profit = profitPercent.value ?? 0.0;
-    final isCostAboveMarket = costPrice.value > marketPrice.value;
-    final isPriceBelowCost = price < costPrice.value;
-
-    // Special case: Auto-calculated price when cost > market (minimize loss scenario)
-    if (isCostAboveMarket && isAutoCalculatedPrice.value && !isPriceBelowCost) {
-      statusMessage.value =
-          "Price optimized to minimize loss given cost exceeds market price";
-      statusColor.value = Colors.blue;
-      statusIcon.value = Icons.lightbulb_outline;
-    }
-    // Loss scenario (price below cost)
-    else if (isPriceBelowCost) {
-      statusMessage.value = "Loss! Price is below cost.";
-      statusColor.value = Colors.red;
-      statusIcon.value = Icons.trending_down;
-    }
-    // Price above market
-    else if (price > marketPrice.value) {
-      statusMessage.value = "Above market price, might affect sales.";
-      statusColor.value = Colors.blue;
-      statusIcon.value = Icons.info;
-    }
-    // Very low margin
-    else if (profit < 5) {
-      statusMessage.value = "Very low margin, consider increasing.";
-      statusColor.value = Colors.orange;
-      statusIcon.value = Icons.warning;
-    }
-    // Balanced margin
-    else if (profit <= 20) {
-      statusMessage.value = "Balanced and competitive.";
-      statusColor.value = Colors.green;
-      statusIcon.value = Icons.check_circle;
-    }
-    // Good margin
-    else {
-      statusMessage.value = "Good profit margin.";
-      statusColor.value = Colors.green;
-      statusIcon.value = Icons.trending_up;
     }
   }
 
@@ -472,7 +460,6 @@ class InventoryController extends GetxController
 
     productInventoryBatches = [];
     currentProductId = null;
-    isAutoCalculatedPrice.value = false;
   }
 
   @override

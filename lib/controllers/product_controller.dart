@@ -50,14 +50,6 @@ class ProductController extends GetxController {
     super.onInit();
   }
 
-  @override
-  void onClose() {
-    pagingController.dispose();
-    pagingControllerForCatWiseProducts.dispose();
-    pagingControllerForFavs.dispose();
-    super.onClose();
-  }
-
   RxBool isLoading = false.obs;
   RxList<ProductModel> products = <ProductModel>[].obs;
 
@@ -212,7 +204,6 @@ class ProductController extends GetxController {
           }
           ProductModel product = ProductModel(
             productId: productID,
-
             marketPrice: double.parse(marketPriceController.text.trim()),
             description: productDescController.text.trim(),
             productName: productNameController.text.trim(),
