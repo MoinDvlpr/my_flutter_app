@@ -13,7 +13,7 @@ import 'update_profile.dart';
 
 class UserProfileScreen extends StatelessWidget {
   UserProfileScreen({super.key});
-  final AuthController authController = Get.put(AuthController());
+  final AuthController authController = Get.find<AuthController>();
   final UserController userController = Get.put(UserController());
   @override
   Widget build(BuildContext context) {

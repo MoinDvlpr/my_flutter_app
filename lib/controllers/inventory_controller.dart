@@ -424,7 +424,7 @@ class InventoryController extends GetxController
 
   RxInt totalSoldUnits = 0.obs;
   RxDouble totalRevenue = 0.0.obs;
-  RxDouble totalProfit = 0.0.obs;
+  RxInt totalRemaining = 0.obs;
   RxDouble totalCost = 0.0.obs;
 
   /// get product report
@@ -432,7 +432,7 @@ class InventoryController extends GetxController
     // fetch product report
     report = await DatabaseHelper.instance.getProductReport(productID);
     totalRevenue.value = report!.totalRevenue;
-    totalProfit.value = report!.totalProfit;
+    totalRemaining.value = report!.totalRemaining;
     totalCost.value = report!.totalCost;
 
     if (report != null) {

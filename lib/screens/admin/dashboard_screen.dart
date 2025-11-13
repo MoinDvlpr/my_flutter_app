@@ -19,7 +19,7 @@ import 'user/users_screen.dart';
 
 class AdminDashboard extends StatelessWidget {
   AdminDashboard({super.key});
-  final dashboardController = Get.find<DashboardController>();
+  final dashboardController = Get.put(DashboardController());
   @override
   Widget build(BuildContext context) {
     dashboardController.fetchDashboardData();

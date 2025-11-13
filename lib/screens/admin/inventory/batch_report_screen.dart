@@ -103,10 +103,9 @@ class ProductReportScreen extends StatelessWidget {
                 Expanded(
                   child: Obx(
                     () => _buildMetricCard(
-                      label: "Total Cost",
-                      value:
-                          "₹${controller.totalCost.value.abs().toStringAsFixed(2)}",
-                      color: Colors.orange,
+                      label: "Total Remaining",
+                      value: "${controller.totalRemaining.value}",
+                      color: Colors.red,
                     ),
                   ),
                 ),
@@ -114,14 +113,10 @@ class ProductReportScreen extends StatelessWidget {
                 Expanded(
                   child: Obx(
                     () => _buildMetricCard(
-                      label: controller.totalProfit.value >= 0
-                          ? "Profit"
-                          : "Loss",
+                      label: "Total Cost",
                       value:
-                          "₹${controller.totalProfit.value.abs().toStringAsFixed(2)}",
-                      color: controller.totalProfit.value >= 0
-                          ? Colors.green
-                          : Colors.red,
+                          "₹${controller.totalCost.value.abs().toStringAsFixed(2)}",
+                      color: Colors.orange,
                     ),
                   ),
                 ),

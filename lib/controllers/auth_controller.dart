@@ -19,6 +19,8 @@ import 'dashboard_controller.dart';
 import 'product_controller.dart';
 import 'package:location/location.dart' as loc;
 
+import 'user_controller.dart';
+
 class AuthController extends GetxController {
   @override
   void onInit() {
@@ -26,8 +28,6 @@ class AuthController extends GetxController {
 
     super.onInit();
   }
-
-  final dashboardController = Get.put(DashboardController());
 
   GetStorage storage = GetStorage();
   RxString loginmessage = "".obs;
@@ -60,6 +60,7 @@ class AuthController extends GetxController {
         Get.put(DashboardController());
         Get.offAll(() => AdminDashboard());
       } else {
+        Get.find<UserController>().fetchUser();
         Get.offAll(() => HomeScreen());
       }
     } else {

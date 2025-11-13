@@ -3091,25 +3091,34 @@ JOIN $PRODUCTS p
       final invResults = await db.rawQuery(
         '''
   SELECT 
-    i.*, 
+    i.*,
+    -- Count sold serials
     (
-      SELECT COUNT(*) 
-      FROM $INVENTORY_ITEMS ii 
-      WHERE ii.$INVENTORY_ID = i.$INVENTORY_ID 
+      SELECT COUNT(*)
+      FROM $INVENTORY_ITEMS ii
+      WHERE ii.$INVENTORY_ID = i.$INVENTORY_ID
         AND ii.$IS_SOLD = 1
     ) AS sold_qty,
+
+    -- Calculate total revenue from actual order items
     (
-      IFNULL(i.$SELLING_PRICE, 0) *
-      (
-        SELECT COUNT(*) 
-        FROM $INVENTORY_ITEMS ii 
-        WHERE ii.$INVENTORY_ID = i.$INVENTORY_ID 
+      SELECT IFNULL(SUM(oi.$ITEM_PRICE), 0)
+      FROM $ORDER_ITEMS oi
+      WHERE EXISTS (
+        SELECT 1
+        FROM $INVENTORY_ITEMS ii
+        WHERE ii.$INVENTORY_ID = i.$INVENTORY_ID
           AND ii.$IS_SOLD = 1
+          AND (
+            ',' || oi.$SERIAL_NUMBERS || ',' LIKE '%,' || ii.$SERIAL_NUMBER || ',%'
+          )
       )
     ) AS total_revenue
-  FROM $INVENTORY i
-  WHERE i.$PRODUCT_ID = ?
-  ORDER BY i.$INVENTORY_ID DESC
+
+FROM $INVENTORY i
+WHERE i.$PRODUCT_ID = ?
+ORDER BY i.$INVENTORY_ID DESC;
+
   ''',
         [productId],
       );

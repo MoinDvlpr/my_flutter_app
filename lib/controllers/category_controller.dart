@@ -8,7 +8,6 @@ import '../dbservice/db_helper.dart';
 import '../model/category_model.dart';
 import '../utils/dialog_utils.dart';
 import '../widgets/app_snackbars.dart';
-import 'dashboard_controller.dart';
 
 class CategoryController extends GetxController {
   // PagingController for infinite scroll
@@ -32,8 +31,6 @@ class CategoryController extends GetxController {
     categoryNameController.dispose();
     super.onClose();
   }
-
-  final dashboardController = Get.find<DashboardController>();
 
   // Fetch paginated categories from DatabaseHelper
   final pageSize = 10; // Constant page size
@@ -178,7 +175,6 @@ class CategoryController extends GetxController {
 
   @override
   void dispose() {
-    pagingController.dispose();
     super.dispose();
   }
 }

@@ -154,10 +154,10 @@ class ProductController extends GetxController {
     }
   }
 
-  final dashboardController = Get.put(DashboardController());
   // addOrEditProduct
   Future<void> addOrEditProduct({int? productID}) async {
     try {
+      final dashboardController = Get.put(DashboardController());
       isLoading.value = true;
       if (productID == null) {
         if (selectedImages.isNotEmpty) {
@@ -246,6 +246,7 @@ class ProductController extends GetxController {
   // delete  product
   Future<void> deleteProduct({required int id, required int index}) async {
     try {
+      final dashboardController = Get.put(DashboardController());
       var result = await DatabaseHelper.instance.deleteProduct(productID: id);
       if (result != null && result != 0) {
         clearControllers();

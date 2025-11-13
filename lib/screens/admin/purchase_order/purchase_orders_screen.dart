@@ -70,7 +70,7 @@ class PurchaseOrdersScreen extends StatelessWidget {
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 12.0),
                             child: _buildPOCard(
-                              poNumber: 'ID #${po.id}',
+                              poNumber: 'Order #${po.id}',
                               items: '${po.totalQty} Items',
                               status: 'Received',
                               date: DateFormator.formateDate(po.orderDate),
