@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:my_flutter_app/screens/auth/signup_screen.dart';
 import '../../controllers/auth_controller.dart';
+import '../../controllers/user_controller.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/app_textstyles.dart';
 import '../../widgets/appsubmitbtn.dart';
@@ -10,6 +11,7 @@ import '../../widgets/global_textfield.dart';
 class LoginScreen extends StatelessWidget {
   LoginScreen({super.key});
   final authController = Get.find<AuthController>();
+  final user = Get.put(UserController());
   final _formKey = GlobalKey<FormState>();
   @override
   Widget build(BuildContext context) {

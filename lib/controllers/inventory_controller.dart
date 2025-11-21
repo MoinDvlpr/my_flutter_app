@@ -349,17 +349,25 @@ class InventoryController extends GetxController
         }
 
         if (successCount > 0) {
-          pagingController.refresh();
-          pagingControllerForAllProducts.refresh();
-          Get.back(result: true);
-          Get.back(result: true);
-          if (!isFromInventory) {
-            Get.off(() => InventoryScreen());
+          final isDone = await DatabaseHelper.instance
+              .updateProductPriceAndStock(
+                prodcutID: inventory.productId,
+                qty: inventory.remaining,
+                newPrice: newSellingPrice.value ?? 0.0,
+              );
+          if (isDone != 0) {
+            pagingController.refresh();
+            pagingControllerForAllProducts.refresh();
+            Get.back(result: true);
+            Get.back(result: true);
+            if (!isFromInventory) {
+              Get.off(() => InventoryScreen());
+            }
+            AppSnackbars.success(
+              "Success",
+              "Selling price updated for $successCount batch(es)",
+            );
           }
-          AppSnackbars.success(
-            "Success",
-            "Selling price updated for $successCount batch(es)",
-          );
         } else {
           AppSnackbars.error("Error", "Failed to update selling price");
         }
@@ -460,6 +468,20 @@ class InventoryController extends GetxController
 
     productInventoryBatches = [];
     currentProductId = null;
+  }
+
+  RxBool showProceedButton = false.obs;
+
+  void startProceedDelay(bool isFromInventory) {
+    if (isFromInventory) {
+      showProceedButton.value = true;
+      return;
+    }
+
+    showProceedButton.value = false;
+    Future.delayed(const Duration(seconds: 3), () {
+      showProceedButton.value = true;
+    });
   }
 
   @override

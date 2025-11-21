@@ -15,6 +15,7 @@ class CalculatePrice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    controller.startProceedDelay(isFromInventory);
     return PopScope(
       canPop: isFromInventory,
       onPopInvokedWithResult: (didPop, result) {
@@ -93,9 +94,13 @@ class CalculatePrice extends StatelessWidget {
                 const SizedBox(height: 24),
 
                 /// Update Button
-                Obx(
-                  () => Visibility(
-                    visible: controller.newSellingPrice.value != null,
+                Obx(() {
+                  final canShow =
+                      controller.newSellingPrice.value != null &&
+                      controller.showProceedButton.value;
+
+                  return Visibility(
+                    visible: canShow,
                     child: SizedBox(
                       width: double.infinity,
                       child: GlobalAppSubmitBtn(
@@ -119,8 +124,8 @@ class CalculatePrice extends StatelessWidget {
                         title: "Proceed",
                       ),
                     ),
-                  ),
-                ),
+                  );
+                }),
               ],
             ),
           );

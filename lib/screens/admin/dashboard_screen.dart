@@ -185,38 +185,14 @@ class AdminDashboard extends StatelessWidget {
                     onMapCreated: dashboardController.onMapCreated,
                   ),
                 ),
-                SizedBox(height: 20),
-                Text(
-                  "Most Selling Products",
-                  style: AppTextStyle.boldTextstyle.copyWith(fontSize: 18),
-                ),
-                _itemList(
-                  products: dashboardController.topProducts,
-                  label: 'Sold',
-                ),
-                SizedBox(height: 20),
-                Text(
-                  "Top 5 Revenue Making Products",
-                  style: AppTextStyle.boldTextstyle.copyWith(fontSize: 18),
-                ),
-                SizedBox(height: 10),
-                _itemList(
-                  products: dashboardController.topRevenueProducts,
-                  label: 'Profit',
-                  isLoss: false,
-                ),
 
-                SizedBox(height: 20),
-                Text(
-                  "Top 5 Loss Making Products",
-                  style: AppTextStyle.boldTextstyle.copyWith(fontSize: 18),
-                ),
-                SizedBox(height: 10),
-                _itemList(
-                  products: dashboardController.topLossProducts,
-                  label: 'Loss',
-                  isLoss: true,
-                ),
+
+                _productsSections(products: dashboardController.topProducts, title: "Most Selling Products", label: 'Sold'),
+                _productsSections(products: dashboardController.topRevenueProducts, title:"Top ${dashboardController.topRevenueProducts.length}  Revenue Making Products", label: 'Profit'),
+                _productsSections(products: dashboardController.topLossProducts, title: "Top ${dashboardController.topLossProducts.length} Loss Making Products", label: 'Loss',isLoss: true),
+
+
+
               ],
             ),
           ),
@@ -224,7 +200,26 @@ class AdminDashboard extends StatelessWidget {
       ),
     );
   }
+Widget _productsSections({required products, required title, required label,bool? isLoss})
+{
+    return Column(
+crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
 
+        if(products.isNotEmpty) ...[
+SizedBox(height: 30),
+Text(
+  title,
+  style: AppTextStyle.boldTextstyle.copyWith(fontSize: 18),
+),
+_itemList(
+products: products,
+label: label,
+    isLoss:isLoss ?? false
+)]
+    ],);
+
+}
   Widget _itemList({
     required products,
     required String label,

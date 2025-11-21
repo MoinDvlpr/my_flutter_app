@@ -143,8 +143,10 @@ class UserController extends GetxController {
   }
 
   void fetchUser() {
-    userName.value = storage.read(USERNAME);
-    userEmail.value = storage.read(EMAIL);
+    if (storage.hasData(USERNAME) && storage.hasData(EMAIL)) {
+      userName.value = storage.read(USERNAME);
+      userEmail.value = storage.read(EMAIL);
+    }
   }
 
   // Delete user
