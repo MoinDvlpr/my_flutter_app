@@ -254,7 +254,7 @@ class CartController extends GetxController {
           response.paymentId ?? '',
         );
         final fullAddress =
-            "${authController.fullName.trim()}, ${authController.address.trim()}, ${authController.cityName.trim()}, ${authController.stateName.trim()}, ${authController.zipcode.trim()}";
+            "${authController.fullName.trim()}, ${authController.shippingAddress}, ${authController.cityName.trim()}, ${authController.stateName.trim()}, ${authController.zipcode.trim()}";
         // INSERT ORDER IN DB
         final order = OrderModel(
           orderStatus: 'Paid',
@@ -315,64 +315,6 @@ class CartController extends GetxController {
     }
   }
 
-  // STEP 4: Payment Success Handler
-  // void _handlePaymentSuccess(PaymentSuccessResponse response) async {
-  //   log(
-  //     "Payment Success: :  : : : : : : : : : : : : : :  : :${response.paymentId}",
-  //   );
-  //   log(response.data.toString());
-  //   log(response.toString());
-  //   try {
-  //     if (response.paymentId != null) {
-  //       String paymentMethod = await fetchPaymentMethod(
-  //         response.paymentId ?? '',
-  //       );
-
-  //       final fullAddress =
-  //           "${authController.fullName.trim()}, ${authController.address.trim()}, ${authController.cityName.trim()}, ${authController.stateName.trim()}, ${authController.zipcode.trim()}";
-  //       // INSERT ORDER IN DB
-  //       final order = OrderModel(
-  //         orderStatus: 'Paid',
-  //         userId: storage.read(USERID),
-  //         razorpaySignature: response.signature ?? '',
-  //         orderDate: DateTime.now().toString(),
-  //         razorpayOrderId: response.orderId ?? '',
-  //         razorpayPaymentId: response.paymentId ?? '',
-  //         shippingAddress: fullAddress,
-  //         customerName: storage.read(USERNAME),
-  //         paymentMethod: paymentMethod,
-  //         totalAmount: total.value,
-  //         totalQuantity: totalQty,
-  //         latitude: authController.lati,
-  //         longitude: authController.longi,
-  //       );
-
-  //       final int? orderID = await DatabaseHelper.instance.insertOrder(order);
-  //       if (orderID != null) {
-  //         for (var item in cartItems) {
-  //           for (int i = 1; i<=item.qty;i++){
-  //             await DatabaseHelper.instance
-  //           }
-  //             await DatabaseHelper.instance.deductStock(
-  //               productID: item.productId,
-  //               qty: cartItemQty[item.productId] ?? 0,
-  //             );
-  //         }
-  //         AppSnackbars.success('Success', 'Payment completed and order placed');
-  //         Get.off(() => OrderSuccessScreen());
-
-  //         // EMPTY CART
-  //         await DatabaseHelper.instance.clearUserCart(storage.read(USERID));
-  //         await fetchAllCartItems();
-  //         Get.closeAllSnackbars();
-  //       }
-  //     }
-  //   } catch (e) {
-  //     log("Error saving order: ${e.toString()}");
-  //   } finally {
-  //     isPaymentLoading.value = false;
-  //   }
-  // }
 
   Future<String> fetchPaymentMethod(String paymentId) async {
     final String basicAuth =
