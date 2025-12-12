@@ -9,12 +9,14 @@ import '../utils/app_textstyles.dart';
 PreferredSizeWidget appBarWithCart({
   void Function()? onTap,
   required String title,
+
 }) {
   final CartController cartController = Get.put(CartController());
   final AuthController authController = Get.put(AuthController());
   return AppBar(
     title: Text(title),
     elevation: 0,
+
     actions: [
       Obx(
         () => Stack(

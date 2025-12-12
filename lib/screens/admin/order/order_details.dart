@@ -100,6 +100,12 @@ class OrderDetails extends StatelessWidget {
               "${orderController.paymentMethod}",
             ),
             _buildInfoRow(
+              "Delivery charge:",
+              "₹${orderController.deliveryCharge.toStringAsFixed(0)}",
+              isBold: false,
+              fontSize: 16,
+            ),
+            _buildInfoRow(
               "Total Amount:",
               "₹${orderController.totalPaidAmount.toStringAsFixed(0)}",
               isBold: true,

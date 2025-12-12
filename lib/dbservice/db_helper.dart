@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../model/address_model.dart';
 import '../model/cart_model.dart';
 import '../model/category_model.dart';
+import '../model/chat_model.dart';
 import '../model/discount_group_model.dart';
 import '../model/inventory_item_model.dart';
 import '../model/inventory_model.dart';
@@ -54,6 +55,8 @@ class DatabaseHelper {
     $PASSWORD TEXT NOT NULL,
     $ROLE TEXT NOT NULL,
     $GROUP_ID INTEGER,
+    $IS_ACTIVE INTEGER NOT NULL,
+    
     FOREIGN KEY ($GROUP_ID) REFERENCES $DISCOUNT_GROUPS($GROUP_ID) ON DELETE SET NULL
   )
 ''');
@@ -61,7 +64,8 @@ class DatabaseHelper {
         await db.execute('''
   CREATE TABLE $CATEGORIES (
     $CATEGORY_ID INTEGER PRIMARY KEY AUTOINCREMENT,
-    $CATEGORY_NAME TEXT UNIQUE COLLATE NOCASE NOT NULL
+    $CATEGORY_NAME TEXT UNIQUE COLLATE NOCASE NOT NULL,
+    $IS_ACTIVE INTEGER NOT NULL
   )
 ''');
 
@@ -78,6 +82,7 @@ CREATE TABLE $PRODUCTS (
   $SOLD_QTY INTEGER NOT NULL,
   $INSERT_DATE TEXT NOT NULL,
   $CATEGORY_ID INTEGER,
+  $IS_ACTIVE INTEGER NOT NULL,
   FOREIGN KEY ($CATEGORY_ID) REFERENCES $CATEGORIES($CATEGORY_ID)
     ON DELETE CASCADE
     ON UPDATE CASCADE
@@ -102,7 +107,8 @@ CREATE TABLE $FAVORITES (
   CREATE TABLE $DISCOUNT_GROUPS (
     $GROUP_ID INTEGER PRIMARY KEY AUTOINCREMENT,
     $GROUP_NAME TEXT UNIQUE COLLATE NOCASE NOT NULL,
-    $DISCOUNT_PERCENTAGE REAL NOT NULL
+    $DISCOUNT_PERCENTAGE REAL NOT NULL,
+    $IS_ACTIVE INTEGER NOT NULL
   );
 ''');
 
@@ -122,7 +128,8 @@ CREATE TABLE $SUPPLIERS (
   $SUPPLIER_ID INTEGER PRIMARY KEY AUTOINCREMENT,
   $SUPPLIER_NAME TEXT NOT NULL,
   $CONTACT INTEGER,
-  $IS_DELETED INTEGER NOT NULL 
+  $IS_DELETED INTEGER NOT NULL,
+  $IS_ACTIVE INTEGER NOT NULL
 );
 ''');
 
@@ -210,6 +217,7 @@ CREATE TABLE $ORDERS (
   $RP_ORDER_ID TEXT,
   $RP_PAYMENT_ID TEXT,
   $RP_SIGNATURE TEXT,
+  $DELIVERY_CHARGE REAL NOT NULL,
   $TOTAL_QTY INTEGER NOT NULL,
   $TOTAL_AMOUNT REAL NOT NULL
 );
@@ -234,9 +242,24 @@ CREATE TABLE $ORDERS (
   );
 ''');
 
-        // fill initial dummy data
-       await InitialDataFill.fillInitialData(db: db);
+        await db.execute('''
+      CREATE TABLE $CHAT_MESSAGES (
+        $CHAT_MSG_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+        $MESSAGE TEXT NOT NULL,
+        $IS_USER INTEGER NOT NULL,
+        $TIMESTAMP TEXT NOT NULL
+      )
+    ''');
 
+        await db.execute('''
+      CREATE TABLE $CHAT_METADATA (
+         $CHAT_METADATA_ID INTEGER PRIMARY KEY AUTOINCREMENT,
+        $LAST_RESET TEXT NOT NULL
+      )
+    ''');
+
+        // fill initial dummy data
+        await InitialDataFill.fillInitialData(db: db);
       },
       onOpen: (db) async {
         await db.execute('PRAGMA foreign_keys = ON');
@@ -539,32 +562,39 @@ CREATE TABLE $ORDERS (
   Future<List<CategoryModel>> getAllCategories({
     int limit = 20,
     int offset = 0,
+    required int userId,
     String? searchQuery,
   }) async {
     try {
       final db = await database;
 
+      // Build WHERE clause
+      final whereClauses = <String>[];
+      final args = <dynamic>[];
+
+      if (userId != 1) {
+        whereClauses.add("$IS_ACTIVE = ?");
+        args.add(1);
+      }
+
       if (searchQuery != null && searchQuery.trim().isNotEmpty) {
-        final result = await db.rawQuery(
-          '''
-        SELECT * FROM $CATEGORIES WHERE $CATEGORY_NAME LIKE ?
+        whereClauses.add("($CATEGORY_NAME LIKE ?)");
+        args.add('%$searchQuery%');
+      }
+
+      final whereString = whereClauses.isNotEmpty
+          ? 'WHERE ${whereClauses.join(' AND ')}'
+          : '';
+
+      final result = await db.rawQuery(
+        '''
+        SELECT * FROM $CATEGORIES $whereString
         ORDER BY $CATEGORY_ID DESC
         LIMIT ? OFFSET ?
         ''',
-          ['%$searchQuery%', limit, offset],
-        );
-        return result.map((e) => CategoryModel.fromMap(e)).toList();
-      } else {
-        final result = await db.rawQuery(
-          '''
-        SELECT * FROM $CATEGORIES 
-        ORDER BY $CATEGORY_ID ASC
-        LIMIT ? OFFSET ?
-        ''',
-          [limit, offset],
-        );
-        return result.map((e) => CategoryModel.fromMap(e)).toList();
-      }
+        [...args, limit, offset],
+      );
+      return result.map((e) => CategoryModel.fromMap(e)).toList();
     } catch (e) {
       log("error (getAllCategories) ::::::--> ${e.toString()}");
       return [];
@@ -581,10 +611,16 @@ CREATE TABLE $ORDERS (
   }
 
   // insert category
-  Future<int?> insertCategory({required String catgoryname}) async {
+  Future<int?> insertCategory({
+    required String catgoryname,
+    required bool isActive,
+  }) async {
     try {
       var db = await database;
-      var result = await db.insert(CATEGORIES, {CATEGORY_NAME: catgoryname});
+      var result = await db.insert(CATEGORIES, {
+        CATEGORY_NAME: catgoryname,
+        IS_ACTIVE: isActive ? 1 : 0,
+      });
       return result;
     } catch (e) {
       log("error (insertCategory) : : : --> ${e.toString()}");
@@ -601,13 +637,14 @@ CREATE TABLE $ORDERS (
   // update category
   Future<int?> updateCategory({
     required String catgoryname,
+    required bool isActive,
     required int catID,
   }) async {
     try {
       var db = await database;
       var result = await db.update(
         CATEGORIES,
-        {CATEGORY_NAME: catgoryname},
+        {CATEGORY_NAME: catgoryname, IS_ACTIVE: isActive ? 1 : 0},
         where: "$CATEGORY_ID=?",
         whereArgs: [catID],
       );
@@ -1118,6 +1155,11 @@ CREATE TABLE $ORDERS (
       final whereClauses = <String>[];
       final args = <dynamic>[userId, userId];
 
+      if (userId != 1) {
+        whereClauses.add("p.$IS_ACTIVE = ?");
+        args.add(1);
+      }
+
       if (searchQuery != null && searchQuery.trim().isNotEmpty) {
         whereClauses.add("(p.$PRODUCT_NAME LIKE ? OR p.$DESCRIPTION LIKE ?)");
         args.addAll(['%$searchQuery%', '%$searchQuery%']);
@@ -1166,7 +1208,9 @@ CREATE TABLE $ORDERS (
         p.$PRODUCT_IMAGE,
         p.$CATEGORY_ID,
         p.$INSERT_DATE,
+        p.$IS_ACTIVE,
         c.$CATEGORY_NAME,
+        
 
         CASE WHEN f.$PRODUCT_ID IS NOT NULL THEN 1 ELSE 0 END AS is_favorite,
 
@@ -1232,6 +1276,7 @@ CREATE TABLE $ORDERS (
         p.$PRODUCT_IMAGE,
         p.$CATEGORY_ID,
         p.$INSERT_DATE,
+        p.$IS_ACTIVE,
         c.$CATEGORY_NAME,
 
         CASE WHEN f.$PRODUCT_ID IS NOT NULL THEN 1 ELSE 0 END AS is_favorite,
@@ -1287,6 +1332,7 @@ CREATE TABLE $ORDERS (
         p.$PRODUCT_IMAGE,
         p.$CATEGORY_ID,
         p.$INSERT_DATE,
+        p.$IS_ACTIVE,
         c.$CATEGORY_NAME,
         CASE WHEN f.$PRODUCT_ID IS NOT NULL THEN 1 ELSE 0 END AS is_favorite,
         dg.$DISCOUNT_PERCENTAGE,
@@ -1336,6 +1382,7 @@ CREATE TABLE $ORDERS (
         p.$PRODUCT_IMAGE,
         p.$CATEGORY_ID,
         p.$INSERT_DATE,
+        p.$IS_ACTIVE,
         c.$CATEGORY_NAME,
         CASE WHEN f.$PRODUCT_ID IS NOT NULL THEN 1 ELSE 0 END AS is_favorite,
         g.$DISCOUNT_PERCENTAGE,
@@ -1390,6 +1437,7 @@ CREATE TABLE $ORDERS (
         p.$PRODUCT_IMAGE,
         p.$CATEGORY_ID,
         p.$INSERT_DATE,
+        p.$IS_ACTIVE,
         c.$CATEGORY_NAME,
         CASE WHEN f.$PRODUCT_ID IS NOT NULL THEN 1 ELSE 0 END AS is_favorite,
         g.$DISCOUNT_PERCENTAGE,
@@ -1441,6 +1489,7 @@ CREATE TABLE $ORDERS (
         p.$PRODUCT_IMAGE,
         p.$CATEGORY_ID,
         p.$INSERT_DATE,
+        p.$IS_ACTIVE,
         c.$CATEGORY_NAME,
         CASE WHEN f.$PRODUCT_ID IS NOT NULL THEN 1 ELSE 0 END AS is_favorite,
         g.$DISCOUNT_PERCENTAGE,
@@ -1523,6 +1572,7 @@ CREATE TABLE $ORDERS (
         p.$PRODUCT_IMAGE,
         p.$CATEGORY_ID,
         p.$INSERT_DATE,
+        p.$IS_ACTIVE,
         c.$CATEGORY_NAME,
         CASE 
           WHEN f.$PRODUCT_ID IS NOT NULL THEN 1 
@@ -1598,6 +1648,7 @@ CREATE TABLE $ORDERS (
         p.$STOCK_QTY,p.$SOLD_QTY,
         p.$INSERT_DATE,
         p.$CATEGORY_ID,
+        p.$IS_ACTIVE,
         c.$CATEGORY_NAME,
         1 AS $IS_FAVORITE,  -- Because only favorite products
         dg.$DISCOUNT_PERCENTAGE,
@@ -1690,6 +1741,7 @@ CREATE TABLE $ORDERS (
         p.$PRICE AS $ORIGINAL_PRICE,
         p.$DESCRIPTION,
         p.$MARKET_RATE,
+        
         dg.$DISCOUNT_PERCENTAGE,
         CASE 
           WHEN dg.$DISCOUNT_PERCENTAGE IS NOT NULL 
@@ -2616,7 +2668,6 @@ CREATE TABLE $ORDERS (
     }
   }
 
-
   // update inventory
   Future<int> updateInventory(InventoryModel inventory) async {
     try {
@@ -2808,36 +2859,44 @@ JOIN $PRODUCTS p
       // Fetch all inventory entries (batches) for this product
       final invResults = await db.rawQuery(
         '''
-  SELECT 
-    i.*,
-    -- Count sold serials
-    (
-      SELECT COUNT(*)
-      FROM $INVENTORY_ITEMS ii
-      WHERE ii.$INVENTORY_ID = i.$INVENTORY_ID
-        AND ii.$IS_SOLD = 1
-    ) AS sold_qty,
+SELECT 
+  i.*,
+  -- Count sold serials
+  (
+    SELECT COUNT(*)
+    FROM $INVENTORY_ITEMS ii
+    WHERE ii.$INVENTORY_ID = i.$INVENTORY_ID
+      AND ii.$IS_SOLD = 1
+  ) AS sold_qty,
 
-    -- Calculate total revenue from actual order items
-    (
-      SELECT IFNULL(SUM(oi.$ITEM_PRICE), 0)
-      FROM $ORDER_ITEMS oi
-      WHERE EXISTS (
-        SELECT 1
+  -- Calculate total revenue from actual order items
+  -- This subquery finds all order items that contain any serial from this inventory
+  -- and sums up: (item_price * count of serials from this inventory in that order item)
+  (
+    SELECT IFNULL(SUM(
+      oi.$ITEM_PRICE * (
+        SELECT COUNT(*)
         FROM $INVENTORY_ITEMS ii
         WHERE ii.$INVENTORY_ID = i.$INVENTORY_ID
           AND ii.$IS_SOLD = 1
-          AND (
-            ',' || oi.$SERIAL_NUMBERS || ',' LIKE '%,' || ii.$SERIAL_NUMBER || ',%'
-          )
+          AND (',' || oi.$SERIAL_NUMBERS || ',' LIKE '%,' || ii.$SERIAL_NUMBER || ',%')
       )
-    ) AS total_revenue
+    ), 0)
+    FROM $ORDER_ITEMS oi
+    WHERE EXISTS (
+      SELECT 1
+      FROM $INVENTORY_ITEMS ii
+      WHERE ii.$INVENTORY_ID = i.$INVENTORY_ID
+        AND ii.$IS_SOLD = 1
+        AND (',' || oi.$SERIAL_NUMBERS || ',' LIKE '%,' || ii.$SERIAL_NUMBER || ',%')
+    )
+  ) AS total_revenue
 
 FROM $INVENTORY i
 WHERE i.$PRODUCT_ID = ?
-ORDER BY i.$INVENTORY_ID DESC;
 
-  ''',
+ORDER BY i.$INVENTORY_ID DESC;
+''',
         [productId],
       );
 
@@ -2865,9 +2924,9 @@ ORDER BY i.$INVENTORY_ID DESC;
       // Get product info
       final productResult = await db.rawQuery(
         '''
-    SELECT $PRODUCT_NAME, $MARKET_RATE 
-    FROM $PRODUCTS WHERE $PRODUCT_ID = ?
-  ''',
+  SELECT $PRODUCT_NAME, $MARKET_RATE 
+  FROM $PRODUCTS WHERE $PRODUCT_ID = ?
+''',
         [productId],
       );
 
@@ -2875,6 +2934,7 @@ ORDER BY i.$INVENTORY_ID DESC;
 
       final productData = productResult.first;
       log("report result = ${invResults.toString()}");
+
       return ProductReportModel(
         productId: productId,
         productName: productData[PRODUCT_NAME].toString(),
@@ -2891,7 +2951,56 @@ ORDER BY i.$INVENTORY_ID DESC;
       );
     } catch (e) {
       log("Error getting product report: ${e.toString()}");
-    return null;
+      return null;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getBatchProductDetails(
+    int inventoryId,
+  ) async {
+    try {
+      final db = await database;
+
+      final results = await db.rawQuery(
+        '''
+      SELECT 
+        ii.$SERIAL_NUMBER,
+        ii.$IS_SOLD,
+        p.$PRODUCT_NAME,
+        i.$SELLING_PRICE as sold_at,
+        i.$COST_PER_UNIT as cost_price,
+        CASE 
+          WHEN ii.$IS_SOLD = 1 THEN (
+            SELECT oi.$ITEM_PRICE
+            FROM $ORDER_ITEMS oi
+            WHERE (',' || oi.$SERIAL_NUMBERS || ',' LIKE '%,' || ii.$SERIAL_NUMBER || ',%')
+            LIMIT 1
+          )
+          ELSE NULL
+        END as actual_sold_price,
+        CASE 
+          WHEN ii.$IS_SOLD = 1 THEN (
+            SELECT o.$ORDER_DATE
+            FROM $ORDER_ITEMS oi
+            JOIN $ORDERS o ON o.$ORDERID = oi.$ORDERID
+            WHERE (',' || oi.$SERIAL_NUMBERS || ',' LIKE '%,' || ii.$SERIAL_NUMBER || ',%')
+            LIMIT 1
+          )
+          ELSE NULL
+        END as sold_date
+      FROM $INVENTORY_ITEMS ii
+      JOIN $INVENTORY i ON i.$INVENTORY_ID = ii.$INVENTORY_ID
+      JOIN $PRODUCTS p ON p.$PRODUCT_ID = i.$PRODUCT_ID
+      WHERE ii.$INVENTORY_ID = ?
+      ORDER BY ii.$IS_SOLD DESC, ii.$SERIAL_NUMBER
+    ''',
+        [inventoryId],
+      );
+
+      return results;
+    } catch (e) {
+      log("Error getting batch product details: ${e.toString()}");
+      return [];
     }
   }
 
@@ -2935,6 +3044,262 @@ ORDER BY i.$INVENTORY_ID DESC;
     } catch (e) {
       log("Error getting product last batch: ${e.toString()}");
       return 0;
+    }
+  }
+
+  // Save a chat message
+  Future<int> insertMessage(ChatMessage message) async {
+    final db = await database;
+    return await db.insert(CHAT_MESSAGES, message.toMap());
+  }
+
+  // Get all messages
+  Future<List<ChatMessage>> getAllMessages() async {
+    final db = await database;
+    final result = await db.query(CHAT_MESSAGES, orderBy: '$TIMESTAMP ASC');
+    return result.map((json) => ChatMessage.fromMap(json)).toList();
+  }
+
+  // Check if chat should be reset (24h)
+  Future<bool> shouldResetChat() async {
+    final db = await database;
+    final result = await db.query(CHAT_METADATA, limit: 1);
+
+    if (result.isEmpty) return true;
+
+    final lastReset = DateTime.parse(result.first[LAST_RESET] as String);
+    final now = DateTime.now();
+    final difference = now.difference(lastReset);
+
+    return difference.inHours >= 24;
+  }
+
+  // Reset chat (clear all messages and update metadata)
+  Future<void> resetChat() async {
+    final db = await database;
+    await db.delete(CHAT_MESSAGES);
+    await db.update(
+      CHAT_METADATA,
+      {LAST_RESET: DateTime.now().toIso8601String()},
+      where: '$CHAT_METADATA_ID = ?',
+      whereArgs: [1],
+    );
+  }
+
+  // Delete all data
+  Future<void> clearAllData() async {
+    final db = await database;
+    await db.delete(CHAT_MESSAGES);
+  }
+
+  // Get user statistics (total revenue, orders, discount)
+  Future<Map<String, dynamic>?> getUserStats(int userId) async {
+    final db = await database;
+    try {
+      final result = await db.rawQuery(
+        '''
+      SELECT 
+        COUNT(DISTINCT o.$ORDERID) as totalOrders,
+        COALESCE(SUM(o.$TOTAL_AMOUNT), 0) as totalRevenue,
+        COALESCE(SUM(
+          oi.$ITEM_PRICE * oi.$ITEM_QTY * COALESCE(oi.$DISCOUNT_PERCENTAGE, 0) / 100
+        ), 0) as totalDiscount
+      FROM $ORDERS o
+      LEFT JOIN $ORDER_ITEMS oi ON o.$ORDERID = oi.$ORDERID
+      WHERE o.$USERID = ?
+    ''',
+        [userId],
+      );
+
+      if (result.isNotEmpty) {
+        return {
+          'totalOrders': result.first['totalOrders'] ?? 0,
+          'totalRevenue': result.first['totalRevenue'] ?? 0.0,
+          'totalDiscount': result.first['totalDiscount'] ?? 0.0,
+        };
+      }
+      return null;
+    } catch (e) {
+      log("Error (getUserStats): ${e.toString()}");
+      return null;
+    }
+  }
+
+  // Get supplier statistics
+  Future<Map<String, dynamic>?> getSupplierStats(int supplierId) async {
+    final db = await database;
+    try {
+      final result = await db.rawQuery(
+        '''
+      SELECT 
+        COUNT($PURCHASE_ORDER_ID) as totalOrders,
+        COALESCE(SUM($TOTAL_COST), 0) as totalSpent,
+        COALESCE(SUM($TOTAL_QTY), 0) as totalUnits,
+        CASE 
+          WHEN SUM($TOTAL_QTY) > 0 
+          THEN COALESCE(SUM($TOTAL_COST) / SUM($TOTAL_QTY), 0)
+          ELSE 0 
+        END as avgCostPerUnit
+      FROM $PURCHASE_ORDERS
+      WHERE $SUPPLIER_ID = ?
+    ''',
+        [supplierId],
+      );
+
+      if (result.isNotEmpty) {
+        return {
+          'totalOrders': result.first['totalOrders'] ?? 0,
+          'totalSpent': result.first['totalSpent'] ?? 0.0,
+          'totalUnits': result.first['totalUnits'] ?? 0,
+          'avgCostPerUnit': result.first['avgCostPerUnit'] ?? 0.0,
+        };
+      }
+      return null;
+    } catch (e) {
+      log("Error (getSupplierStats): ${e.toString()}");
+      return null;
+    }
+  }
+
+  // Get supplier purchase orders with pagination
+  Future<List<PurchaseOrderModel>> getSupplierPurchaseOrders(
+    int supplierId, {
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    final db = await database;
+    try {
+      final result = await db.rawQuery(
+        '''
+  SELECT 
+    po.*,
+    p.$PRODUCT_NAME AS product_name,
+    p.$PRODUCT_IMAGE AS product_image,
+    p.$PRICE AS product_price,
+    p.$MARKET_RATE AS product_market_rate
+  FROM $PURCHASE_ORDERS po
+  INNER JOIN $PRODUCTS p ON po.$PRODUCT_ID = p.$PRODUCT_ID
+  WHERE po.$SUPPLIER_ID = ?
+  ORDER BY po.$ORDER_DATE DESC
+  LIMIT ? OFFSET ?
+''',
+        [supplierId, limit, offset],
+      );
+
+      return result.map((e) => PurchaseOrderModel.fromMap(e)).toList();
+    } catch (e) {
+      log("Error (getSupplierPurchaseOrders): ${e.toString()}");
+      return [];
+    }
+  }
+
+  // update category status
+  Future<bool> updateCategoryStatus({
+    required int id,
+    required bool isActive,
+  }) async {
+    final db = await database;
+    try {
+      final result = await db.rawUpdate(
+        '''
+      UPDATE $CATEGORIES
+      SET $IS_ACTIVE = ?
+      WHERE $CATEGORY_ID = ?
+    ''',
+        [isActive, id],
+      );
+      return result > 0;
+    } catch (e) {
+      log("Error (updateCategoryStatus): ${e.toString()}");
+      return false;
+    }
+  }
+
+  // update group status
+  Future<bool> updateGroupStatus({
+    required int id,
+    required bool isActive,
+  }) async {
+    final db = await database;
+    try {
+      final result = await db.rawUpdate(
+        '''
+      UPDATE $DISCOUNT_GROUPS
+      SET $IS_ACTIVE = ?
+      WHERE $GROUP_ID = ?
+    ''',
+        [isActive, id],
+      );
+      return result > 0;
+    } catch (e) {
+      log("Error (updateGroupStatus): ${e.toString()}");
+      return false;
+    }
+  }
+
+  // update product status
+  Future<bool> updateProductStatus({
+    required int id,
+    required int isActive,
+  }) async {
+    final db = await database;
+    try {
+      final result = await db.rawUpdate(
+        '''
+      UPDATE $PRODUCTS
+      SET $IS_ACTIVE = ?
+      WHERE $PRODUCT_ID = ?
+    ''',
+        [isActive, id],
+      );
+      return result > 0;
+    } catch (e) {
+      log("Error (updateProductStatus): ${e.toString()}");
+      return false;
+    }
+  }
+
+  // update user status
+  Future<bool> updateUserStatus({
+    required int id,
+    required int isActive,
+  }) async {
+    final db = await database;
+    try {
+      final result = await db.rawUpdate(
+        '''
+      UPDATE $USERS
+      SET $IS_ACTIVE = ?
+      WHERE $USERID = ?
+    ''',
+        [isActive, id],
+      );
+      return result > 0;
+    } catch (e) {
+      log("Error (updateUserStatus): ${e.toString()}");
+      return false;
+    }
+  }
+
+  // update supplier status
+  Future<bool> updateSupplierStatus({
+    required int id,
+    required int isActive,
+  }) async {
+    final db = await database;
+    try {
+      final result = await db.rawUpdate(
+        '''
+      UPDATE $SUPPLIERS
+      SET $IS_ACTIVE = ?
+      WHERE $SUPPLIER_ID = ?
+    ''',
+        [isActive, id],
+      );
+      return result > 0;
+    } catch (e) {
+      log("Error (updateSupplierStatus): ${e.toString()}");
+      return false;
     }
   }
 }

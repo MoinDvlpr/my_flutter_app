@@ -102,13 +102,21 @@ class PurchaseOrderController extends GetxController
         isLoading.value = true;
         if (poID == null) {
           if (productID == null) return;
+
+          totalQuantity.value = int.parse(
+            itemQuantityController.text.toString(),
+          );
+          totalCost.value =
+              double.parse(itemCostPriceController.text.toString()) *
+              totalQuantity.value;
+
           final po = PurchaseOrderModel(
             supplierId: supplierID!,
             isReceived: isReceived,
             productID: productID!,
             costPerUnit: double.parse(itemCostPriceController.text.toString()),
             orderDate: selectedDate.value ?? DateTime.now(),
-            totalQty: int.parse(itemQuantityController.text.toString()),
+            totalQty: totalQuantity.value,
 
             totalCost: totalCost.value,
             isPartiallyReceived: 0,

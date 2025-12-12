@@ -15,6 +15,7 @@ import '../screens/auth/login_screen.dart';
 import '../screens/customer/home/home_screen.dart';
 import '../utils/dialog_utils.dart';
 import '../widgets/app_snackbars.dart';
+import 'category_controller.dart';
 import 'dashboard_controller.dart';
 import 'product_controller.dart';
 import 'package:location/location.dart' as loc;
@@ -88,6 +89,7 @@ class AuthController extends GetxController {
         email: emailController.text.trim(),
         password: passController.text.trim(),
         role: "User",
+        isActive: true,
       );
       var result = await DatabaseHelper.instance.insertUser(user);
       if (result != null && result != 0) {
@@ -442,6 +444,7 @@ class AuthController extends GetxController {
     });
     Get.delete<CartController>();
     Get.delete<ProductController>();
+    // Get.delete<CategoryController>();
     await storage.erase();
     Get.offAll(() => LoginScreen());
   }

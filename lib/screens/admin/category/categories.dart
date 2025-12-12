@@ -62,87 +62,249 @@ class Categories extends StatelessWidget {
                   PagingListener(
                     controller: categoryController.pagingController,
 
-                    builder: (context, state, fetchNextPage) =>
-                        RefreshIndicator(
-                          onRefresh: () async {
-                            return categoryController.pagingController
-                                .refresh();
-                          },
-                          child: PagedListView<int, CategoryModel>(
-                            state: state,
-                            fetchNextPage: fetchNextPage,
-                            builderDelegate: PagedChildBuilderDelegate(
-                              itemBuilder: (context, category, index) {
-                                return Container(
-                                  padding: EdgeInsets.all(8.0),
-                                  decoration: BoxDecoration(
-                                    border:
-                                        index !=
-                                            categoryController
-                                                    .categories
-                                                    .length -
-                                                1
-                                        ? Border(
-                                            bottom: BorderSide(
-                                              width: 0.6,
-                                              color: grey,
+                    builder: (context, state, fetchNextPage) => RefreshIndicator(
+                      onRefresh: () async {
+                        return categoryController.pagingController.refresh();
+                      },
+                      child: PagedListView<int, CategoryModel>(
+                        state: state,
+                        fetchNextPage: fetchNextPage,
+                        builderDelegate: PagedChildBuilderDelegate(
+                          itemBuilder: (context, category, index) {
+                            categoryController.isCatActive[category
+                                    .categoryId!] =
+                                category.isActive;
+                            return Obx(
+                              () => Container(
+                                padding: EdgeInsets.all(8.0),
+                                decoration: BoxDecoration(
+                                  border:
+                                      index !=
+                                          categoryController.categories.length -
+                                              1
+                                      ? Border(
+                                          bottom: BorderSide(
+                                            width: 0.6,
+                                            color: grey,
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        category.categoryName ?? '',
+                                        style: AppTextStyle.regularTextstyle,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    (categoryController.isCatActive[category
+                                                .categoryId!] ??
+                                            category.isActive)
+                                        ? Container(
+                                            decoration: BoxDecoration(
+                                              color: Colors.green.shade100,
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                            ),
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 6.0,
+                                                    vertical: 2,
+                                                  ),
+                                              child: Text(
+                                                'Active',
+                                                style: AppTextStyle
+                                                    .semiBoldTextstyle
+                                                    .copyWith(
+                                                      color: Colors.green,
+                                                      fontSize: 12,
+                                                    ),
+                                              ),
                                             ),
                                           )
-                                        : null,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          category.categoryName ?? '',
-                                          style: AppTextStyle.regularTextstyle,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      IconButton(
-                                        onPressed: () async {
-                                          categoryController
-                                                  .categoryNameController
-                                                  .text =
-                                              category.categoryName;
-                                          Get.to(
-                                            () => AddEditCategory(
-                                              catID: category.categoryId,
+                                        : Container(
+                                            decoration: BoxDecoration(
+                                              color: Colors.red.shade100,
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
                                             ),
-                                          );
-                                        },
-                                        icon: Icon(Icons.edit, color: grey),
-                                        tooltip: 'edit',
-                                      ),
-                                      IconButton(
-                                        onPressed: () async {
-                                          showDeleteConfirmationDialog(
-                                            title: 'Delete category',
-                                            message: 'Are you sure ?',
-                                            onConfirm: () async {
-                                              if (category.categoryId != null) {
-                                                await categoryController
-                                                    .deleteCategory(
-                                                      id: category.categoryId!,
-                                                      index: index,
-                                                    );
-                                              }
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 6.0,
+                                                    vertical: 2,
+                                                  ),
+                                              child: Text(
+                                                'Inactive',
+                                                style: AppTextStyle
+                                                    .semiBoldTextstyle
+                                                    .copyWith(
+                                                      color: Colors.red,
+                                                      fontSize: 12,
+                                                    ),
+                                              ),
+                                            ),
+                                          ),
+
+                                    PopupMenuButton(
+                                      color: bg,
+                                      itemBuilder: (context) {
+                                        return [
+                                          PopupMenuItem(
+                                            child: Row(
+                                              children: [
+                                                Icon(Icons.edit, color: grey),
+                                                SizedBox(width: 10),
+                                                Text(
+                                                  'Edit',
+                                                  style: AppTextStyle
+                                                      .regularTextstyle,
+                                                ),
+                                              ],
+                                            ),
+                                            onTap: () async {
+                                              categoryController
+                                                      .categoryNameController
+                                                      .text =
+                                                  category.categoryName;
+                                              categoryController
+                                                      .isActive
+                                                      .value =
+                                                  categoryController
+                                                      .isCatActive[category
+                                                      .categoryId!] ??
+                                                  category.isActive;
+                                              Get.to(
+                                                () => AddEditCategory(
+                                                  catID: category.categoryId,
+                                                ),
+                                              );
                                             },
-                                          );
-                                        },
-                                        icon: Icon(
-                                          Icons.delete_outlined,
-                                          color: primary,
-                                        ),
-                                        tooltip: 'delete',
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
+                                          ),
+                                          PopupMenuItem(
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.delete_outlined,
+                                                  color: primary,
+                                                ),
+                                                SizedBox(width: 10),
+                                                Text(
+                                                  'Delete',
+                                                  style: AppTextStyle
+                                                      .regularTextstyle,
+                                                ),
+                                              ],
+                                            ),
+                                            onTap: () async {
+                                              showDeleteConfirmationDialog(
+                                                title: 'Delete category',
+                                                message: 'Are you sure ?',
+                                                onConfirm: () async {
+                                                  if (category.categoryId !=
+                                                      null) {
+                                                    await categoryController
+                                                        .deleteCategory(
+                                                          id: category
+                                                              .categoryId!,
+                                                          index: index,
+                                                        );
+                                                  }
+                                                },
+                                              );
+                                            },
+                                          ),
+                                          PopupMenuItem(
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  (categoryController
+                                                              .isCatActive[category
+                                                              .categoryId!] ??
+                                                          category.isActive)
+                                                      ? Icons.remove_red_eye
+                                                      : Icons
+                                                            .remove_red_eye_outlined,
+                                                  color:
+                                                      (categoryController
+                                                              .isCatActive[category
+                                                              .categoryId!] ??
+                                                          category.isActive)
+                                                      ? primary
+                                                      : grey,
+                                                ),
+                                                SizedBox(width: 10),
+                                                Text(
+                                                  (categoryController
+                                                              .isCatActive[category
+                                                              .categoryId!] ??
+                                                          category.isActive)
+                                                      ? 'Chane to "Inactive"'
+                                                      : 'Chane to "Active"',
+                                                  style: AppTextStyle
+                                                      .regularTextstyle,
+                                                ),
+                                              ],
+                                            ),
+                                            onTap: () async {
+                                              await categoryController
+                                                  .activeInactiveHandle(
+                                                    id: category.categoryId!,
+                                                    index: index,
+                                                  );
+                                            },
+                                          ),
+                                        ];
+                                      },
+                                    ),
+                                    // IconButton(
+                                    //   onPressed: () async {
+                                    //     categoryController
+                                    //             .categoryNameController
+                                    //             .text =
+                                    //         category.categoryName;
+                                    //     Get.to(
+                                    //       () => AddEditCategory(
+                                    //         catID: category.categoryId,
+                                    //       ),
+                                    //     );
+                                    //   },
+                                    //   icon: Icon(Icons.edit, color: grey),
+                                    //   tooltip: 'edit',
+                                    // ),
+                                    // IconButton(
+                                    //   onPressed: () async {
+                                    //     showDeleteConfirmationDialog(
+                                    //       title: 'Delete category',
+                                    //       message: 'Are you sure ?',
+                                    //       onConfirm: () async {
+                                    //         if (category.categoryId != null) {
+                                    //           await categoryController
+                                    //               .deleteCategory(
+                                    //                 id: category.categoryId!,
+                                    //                 index: index,
+                                    //               );
+                                    //         }
+                                    //       },
+                                    //     );
+                                    //   },
+                                    //   icon: Icon(
+                                    //     Icons.delete_outlined,
+                                    //     color: primary,
+                                    //   ),
+                                    //   tooltip: 'delete',
+                                    // ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
+                      ),
+                    ),
                   ),
             ),
             // ),

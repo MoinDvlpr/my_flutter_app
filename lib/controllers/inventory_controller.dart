@@ -1,10 +1,10 @@
-// Updated InventoryController with Weighted Average Cost (WAC) calculation
-
+import 'dart:developer';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 
 import '../dbservice/db_helper.dart';
+import '../model/batch_report_item_model.dart';
 import '../model/inventory_model.dart';
 import '../model/product_model.dart';
 import '../model/product_report_model.dart';
@@ -117,6 +117,7 @@ class InventoryController extends GetxController
       // Calculate Weighted Average Cost
       final wac = calculateWeightedAverageCost(productInventoryBatches);
       weightedAverageCost.value = wac;
+      costPrice.value = wac; // Use WAC as the cost price
 
       // Calculate recommended selling price using WAC
       final difference = marketPrice.value - wac;
@@ -142,6 +143,7 @@ class InventoryController extends GetxController
 
       isLoading.value = false;
     } catch (e) {
+      log("Error in fetchAndCalculateWACPricing: ${e.toString()}");
       AppSnackbars.error(
         "Error",
         "Failed to calculate pricing: ${e.toString()}",
@@ -157,13 +159,15 @@ class InventoryController extends GetxController
     productName.value = inventory.productName ?? 'undefined';
     marketPrice.value = inventory.marketPrice ?? 0.0;
     currentSellingPrice.value = inventory.currentSellingPrice ?? 0.0;
-    // Original logic for non-inventory flow
-    costPrice.value = inventory.costPerUnit;
+
     // NEW: If from inventory, fetch all batches and calculate WAC
-    if (inventory.productId != null) {
+    if (isFromInventory && inventory.productId != null) {
       await fetchAndCalculateWACPricing(inventory.productId!);
       return; // Early return as WAC calculation handles the rest
     }
+
+    // Original logic for non-inventory flow
+    costPrice.value = inventory.costPerUnit;
 
     if (!(isFromInventory && inventory.sellingPrice == null)) {
       if (costPrice.value > 0) {
@@ -211,18 +215,21 @@ class InventoryController extends GetxController
     final price = double.tryParse(input);
 
     if (price == null || price < 0) {
-      Get.snackbar(
-        "Invalid Input",
-        "Please enter a valid price",
-        backgroundColor: Colors.red.withValues(alpha: 0.2),
-      );
+      // FIXED: Using AppSnackbars instead of Get.snackbar
+      AppSnackbars.error("Invalid Input", "Please enter a valid price");
       return;
     }
 
     newSellingPrice.value = price;
-    // Use WAC (which is stored in costPrice) for profit calculations
+    // Use costPrice (which now contains WAC for inventory items) for profit calculations
     profitAmount.value = price - costPrice.value;
-    profitPercent.value = (profitAmount.value! / costPrice.value) * 100;
+
+    // Prevent division by zero
+    if (costPrice.value > 0) {
+      profitPercent.value = (profitAmount.value! / costPrice.value) * 100;
+    } else {
+      profitPercent.value = 0.0;
+    }
 
     // Update maxProfit if needed
     if ((profitPercent.value ?? 0.0) > maxProfit.value) {
@@ -239,7 +246,8 @@ class InventoryController extends GetxController
 
     // Determine status
     if (price < costPrice.value) {
-      statusMessage.value = "Loss! Price is below weighted average cost.";
+      statusMessage.value =
+          "Loss! Price is below ${weightedAverageCost.value > 0 ? 'weighted average' : ''} cost.";
       statusColor.value = Colors.red;
       statusIcon.value = Icons.trending_down;
     } else if (price > marketPrice.value) {
@@ -272,7 +280,7 @@ class InventoryController extends GetxController
     double clampedValue = _clampValue(value, 0.0, maxProfit.value);
     profitMargin.value = clampedValue;
 
-    // Calculate selling price based on profit margin percentage (using WAC)
+    // Calculate selling price based on profit margin percentage (using costPrice which contains WAC)
     final sellingPrice = costPrice.value * (1 + (clampedValue / 100));
     newSellingPrice.value = sellingPrice;
 
@@ -331,7 +339,9 @@ class InventoryController extends GetxController
       AppSnackbars.error("Error", "Please enter a valid price first");
       return;
     }
+
     isLoading.value = true;
+
     try {
       // If we have multiple batches (from WAC calculation), update all of them
       if (productInventoryBatches.isNotEmpty && currentProductId != null) {
@@ -374,6 +384,7 @@ class InventoryController extends GetxController
       } else {
         // Single batch update (original logic)
         inventory.sellingPrice = newSellingPrice.value;
+        inventory.isReadyForSale = true;
         final result = await DatabaseHelper.instance.updateInventory(inventory);
 
         if (result != 0) {
@@ -387,6 +398,7 @@ class InventoryController extends GetxController
         }
       }
     } catch (e) {
+      log("Error in updatePrice: ${e.toString()}");
       AppSnackbars.error("Error", "Failed to update: ${e.toString()}");
     } finally {
       isLoading.value = false;
@@ -405,10 +417,15 @@ class InventoryController extends GetxController
     required int pageKey,
     bool? isInsale,
   }) async {
-    return await DatabaseHelper.instance.getInventories(
-      offset: (pageKey - 1) * 20,
-      isInSale: isInsale,
-    );
+    try {
+      return await DatabaseHelper.instance.getInventories(
+        offset: (pageKey - 1) * 20,
+        isInSale: isInsale,
+      );
+    } catch (e) {
+      log("Error in fetchInventories: ${e.toString()}");
+      return [];
+    }
   }
 
   // for displaying info
@@ -423,11 +440,16 @@ class InventoryController extends GetxController
     required int pageKey,
     bool isForOutOfStock = false,
   }) async {
-    return await DatabaseHelper.instance.getProducts(
-      limit: 20,
-      offset: (pageKey - 1) * 20,
-      forOutOfStock: isForOutOfStock,
-    );
+    try {
+      return await DatabaseHelper.instance.getProducts(
+        limit: 20,
+        offset: (pageKey - 1) * 20,
+        forOutOfStock: isForOutOfStock,
+      );
+    } catch (e) {
+      log("Error in fetchProducts: ${e.toString()}");
+      return [];
+    }
   }
 
   RxInt totalSoldUnits = 0.obs;
@@ -437,14 +459,18 @@ class InventoryController extends GetxController
 
   /// get product report
   fetchProductReport(int productID) async {
-    // fetch product report
-    report = await DatabaseHelper.instance.getProductReport(productID);
-    totalRevenue.value = report!.totalRevenue;
-    totalRemaining.value = report!.totalRemaining;
-    totalCost.value = report!.totalCost;
+    try {
+      // fetch product report
+      report = await DatabaseHelper.instance.getProductReport(productID);
 
-    if (report != null) {
-      reportItems.assignAll(report!.reportItems);
+      if (report != null) {
+        totalRevenue.value = report!.totalRevenue;
+        totalRemaining.value = report!.totalRemaining;
+        totalCost.value = report!.totalCost;
+        reportItems.assignAll(report!.reportItems);
+      }
+    } catch (e) {
+      log("Error in fetchProductReport: ${e.toString()}");
     }
   }
 
@@ -484,10 +510,91 @@ class InventoryController extends GetxController
     });
   }
 
+  List<BatchProductItem> products = <BatchProductItem>[].obs;
+  List<BatchProductItem> filteredProducts = <BatchProductItem>[].obs;
+  RxBool isReportLoading = true.obs;
+
+  RxInt totalProducts = 0.obs;
+  RxInt soldProducts = 0.obs;
+  RxInt remainingProducts = 0.obs;
+  RxDouble totalBatchRevenue = 0.0.obs;
+  RxDouble totalBatchCost = 0.0.obs;
+  RxDouble totalProfit = 0.0.obs;
+
+  Future<void> loadBatchDetails(int inventoryID) async {
+    try {
+      isReportLoading.value = true;
+
+      // Get batch details from database
+      final results = await DatabaseHelper.instance.getBatchProductDetails(
+        inventoryID,
+      );
+
+      products = results.map((map) => BatchProductItem.fromMap(map)).toList();
+      filteredProducts.assignAll(products);
+
+      // Calculate metrics
+      totalProducts.value = products.length;
+      soldProducts.value = products.where((p) => p.isSold).length;
+      remainingProducts.value = products.where((p) => !p.isSold).length;
+      totalBatchRevenue.value = products
+          .where((p) => p.isSold)
+          .fold(0.0, (sum, p) => sum + (p.actualSoldPrice ?? p.soldAt));
+      totalBatchCost.value = products.fold(0.0, (sum, p) => sum + p.costPrice);
+      totalProfit.value = products
+          .where((p) => p.isSold)
+          .fold(
+            0.0,
+            (sum, p) => sum + (p.actualSoldPrice ?? p.soldAt) - p.costPrice,
+          );
+
+      isReportLoading.value = false;
+    } catch (e) {
+      log("Error in loadBatchDetails: ${e.toString()}");
+      isReportLoading.value = false;
+    }
+  }
+
+  RxString selectedFilter = 'All'.obs;
+
+  // filtered here
+  void filterProducts(String status) {
+    switch (status) {
+      case 'All':
+        filteredProducts.assignAll(products);
+        selectedFilter.value = 'All';
+        break;
+      case 'Sold':
+        filteredProducts.assignAll(products.where((p) => p.isSold));
+        selectedFilter.value = 'Sold';
+        break;
+      case 'Available':
+        filteredProducts.assignAll(products.where((p) => !p.isSold));
+        selectedFilter.value = 'Available';
+        break;
+      default:
+    }
+  }
+
+  void resetBatchReport() {
+    totalProducts.value = 0;
+    soldProducts.value = 0;
+    remainingProducts.value = 0;
+    totalBatchRevenue.value = 0.0;
+    totalBatchCost.value = 0.0;
+    totalProfit.value = 0.0;
+    products.clear();
+    filteredProducts.clear();
+    selectedFilter.value = 'All';
+  }
+
   @override
   void onClose() {
     priceController.dispose();
     animationController.dispose();
+    pagingController.dispose();
+    pagingControllerForAllProducts.dispose();
+    pagingControllerForSoldOuts.dispose();
     super.onClose();
   }
 }

@@ -63,64 +63,222 @@ class DiscountGroupsScreen extends StatelessWidget {
                       state: state,
                       fetchNextPage: fetchNextPage,
                       builderDelegate: PagedChildBuilderDelegate(
-                        itemBuilder: (context, group, index) => Container(
-                          padding: EdgeInsets.all(8.0),
-                          decoration: BoxDecoration(
-                            border:
-                                index !=
-                                    discountGroupController.groups.length - 1
-                                ? Border(
-                                    bottom: BorderSide(width: 0.6, color: grey),
-                                  )
-                                : null,
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  group.groupName,
-                                  style: AppTextStyle.regularTextstyle,
-                                  overflow: TextOverflow.ellipsis,
+                        itemBuilder: (context, group, index) => Obx(
+                          () => Container(
+                            padding: EdgeInsets.all(8.0),
+                            decoration: BoxDecoration(
+                              border:
+                                  index !=
+                                      discountGroupController.groups.length - 1
+                                  ? Border(
+                                      bottom: BorderSide(
+                                        width: 0.6,
+                                        color: grey,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    group.groupName,
+                                    style: AppTextStyle.regularTextstyle,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                              ),
-                              IconButton(
-                                onPressed: () async {
-                                  Get.to(
-                                    () => AddEditDiscountGroup(
-                                      groupID: group.groupId!,
-                                    ),
-                                  );
+                                (discountGroupController.isGrpActive[group
+                                            .groupId!] ??
+                                        group.isActive)
+                                    ? Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.shade100,
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6.0,
+                                            vertical: 2,
+                                          ),
+                                          child: Text(
+                                            'Active',
+                                            style: AppTextStyle
+                                                .semiBoldTextstyle
+                                                .copyWith(
+                                                  color: Colors.green,
+                                                  fontSize: 12,
+                                                ),
+                                          ),
+                                        ),
+                                      )
+                                    : Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.red.shade100,
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6.0,
+                                            vertical: 2,
+                                          ),
+                                          child: Text(
+                                            'Inactive',
+                                            style: AppTextStyle
+                                                .semiBoldTextstyle
+                                                .copyWith(
+                                                  color: Colors.red,
+                                                  fontSize: 12,
+                                                ),
+                                          ),
+                                        ),
+                                      ),
 
-                                  await discountGroupController.fetchGroupByID(
-                                    groupID: group.groupId!,
-                                  );
-                                },
-                                icon: Icon(Icons.edit, color: grey),
-                                tooltip: 'edit',
-                              ),
-                              IconButton(
-                                onPressed: () async {
-                                  showDeleteConfirmationDialog(
-                                    title: 'Delete group',
-                                    message: 'Are you sure ?',
-                                    onConfirm: () async {
-                                      if (group.groupId != null) {
-                                        await discountGroupController
-                                            .deleteGroup(
-                                              id: group.groupId!,
-                                              index: index,
-                                            );
-                                      }
-                                    },
-                                  );
-                                },
-                                icon: Icon(
-                                  Icons.delete_outlined,
-                                  color: primary,
+                                PopupMenuButton(
+                                  color: bg,
+                                  itemBuilder: (context) {
+                                    return [
+                                      PopupMenuItem(
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.edit, color: grey),
+                                            SizedBox(width: 10),
+                                            Text(
+                                              'Edit',
+                                              style:
+                                                  AppTextStyle.regularTextstyle,
+                                            ),
+                                          ],
+                                        ),
+                                        onTap: () async {
+                                          Get.to(
+                                            () => AddEditDiscountGroup(
+                                              groupID: group.groupId!,
+                                            ),
+                                          );
+
+                                          await discountGroupController
+                                              .fetchGroupByID(
+                                                groupID: group.groupId!,
+                                              );
+                                        },
+                                      ),
+                                      PopupMenuItem(
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.delete_outlined,
+                                              color: primary,
+                                            ),
+                                            SizedBox(width: 10),
+                                            Text(
+                                              'Delete',
+                                              style:
+                                                  AppTextStyle.regularTextstyle,
+                                            ),
+                                          ],
+                                        ),
+                                        onTap: () async {
+                                          showDeleteConfirmationDialog(
+                                            title: 'Delete group',
+                                            message: 'Are you sure ?',
+                                            onConfirm: () async {
+                                              if (group.groupId != null) {
+                                                await discountGroupController
+                                                    .deleteGroup(
+                                                      id: group.groupId!,
+                                                      index: index,
+                                                    );
+                                              }
+                                            },
+                                          );
+                                        },
+                                      ),
+                                      PopupMenuItem(
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              (discountGroupController
+                                                          .isGrpActive[group
+                                                          .groupId!] ??
+                                                      group.isActive)
+                                                  ? Icons.remove_red_eye
+                                                  : Icons
+                                                        .remove_red_eye_outlined,
+                                              color:
+                                                  (discountGroupController
+                                                          .isGrpActive[group
+                                                          .groupId!] ??
+                                                      group.isActive)
+                                                  ? primary
+                                                  : grey,
+                                            ),
+                                            SizedBox(width: 10),
+                                            Text(
+                                              (discountGroupController
+                                                          .isGrpActive[group
+                                                          .groupId!] ??
+                                                      group.isActive)
+                                                  ? 'Chane to "Inactive"'
+                                                  : 'Chane to "Active"',
+                                              style:
+                                                  AppTextStyle.regularTextstyle,
+                                            ),
+                                          ],
+                                        ),
+                                        onTap: () async {
+                                          await discountGroupController
+                                              .activeInactiveHandle(
+                                                id: group.groupId!,
+                                                index: index,
+                                              );
+                                        },
+                                      ),
+                                    ];
+                                  },
                                 ),
-                                tooltip: 'delete',
-                              ),
-                            ],
+                                // IconButton(
+                                //   onPressed: () async {
+                                //     Get.to(
+                                //       () => AddEditDiscountGroup(
+                                //         groupID: group.groupId!,
+                                //       ),
+                                //     );
+
+                                //     await discountGroupController.fetchGroupByID(
+                                //       groupID: group.groupId!,
+                                //     );
+                                //   },
+                                //   icon: Icon(Icons.edit, color: grey),
+                                //   tooltip: 'edit',
+                                // ),
+                                // IconButton(
+                                //   onPressed: () async {
+                                //     showDeleteConfirmationDialog(
+                                //       title: 'Delete group',
+                                //       message: 'Are you sure ?',
+                                //       onConfirm: () async {
+                                //         if (group.groupId != null) {
+                                //           await discountGroupController
+                                //               .deleteGroup(
+                                //                 id: group.groupId!,
+                                //                 index: index,
+                                //               );
+                                //         }
+                                //       },
+                                //     );
+                                //   },
+                                //   icon: Icon(
+                                //     Icons.delete_outlined,
+                                //     color: primary,
+                                //   ),
+                                //   tooltip: 'delete',
+                                // ),
+                              ],
+                            ),
                           ),
                         ),
                       ),

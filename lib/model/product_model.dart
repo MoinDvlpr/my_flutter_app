@@ -12,6 +12,7 @@ class ProductModel {
   final int stockQty;
   final int soldQty;
   final int categoryId;
+  final bool isActive;
   final String? categoryName;
   final String productImage; // now required
   double? totalRevenue;
@@ -29,6 +30,7 @@ class ProductModel {
     required this.productName,
     required this.marketPrice,
     required this.insertDate,
+    required this.isActive,
     this.isFavorite = false,
 
     this.description,
@@ -60,6 +62,7 @@ class ProductModel {
       categoryName: map[CATEGORY_NAME],
       insertDate: map[INSERT_DATE],
       isFavorite: map[IS_FAVORITE] == 1,
+      isActive: map[IS_ACTIVE] == 1,
 
       discountedPrice: map['discounted_price'] != null
           ? (map['discounted_price'] as num).toDouble()
@@ -83,6 +86,7 @@ class ProductModel {
       CATEGORY_ID: categoryId,
       PRODUCT_IMAGE: productImage,
       INSERT_DATE: insertDate,
+      IS_ACTIVE: isActive ? 1 : 0,
     };
   }
 }

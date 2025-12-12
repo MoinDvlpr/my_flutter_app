@@ -266,6 +266,7 @@ class CartController extends GetxController {
           shippingAddress: fullAddress,
           customerName: storage.read(USERNAME),
           paymentMethod: paymentMethod,
+          deliveryCharge: 150.0,
           totalAmount: total.value,
           totalQuantity: totalQty,
           latitude: authController.lati,
@@ -314,7 +315,6 @@ class CartController extends GetxController {
       isPaymentLoading.value = false;
     }
   }
-
 
   Future<String> fetchPaymentMethod(String paymentId) async {
     final String basicAuth =

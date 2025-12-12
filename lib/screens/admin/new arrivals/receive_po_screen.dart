@@ -91,6 +91,7 @@ class ReceivePOsScreen extends StatelessWidget {
                                 Get.to(() => StartReceivingOrder(po: po));
                                 poController.poItems.clear();
                               },
+                              productName: po.productName ?? 'Unnamed product',
                             ),
                           );
                         },
@@ -111,6 +112,7 @@ class ReceivePOsScreen extends StatelessWidget {
     required String status,
     required String date,
     required String supplier,
+    required String productName, // ← Now required (add this to your model/call)
     required Color buttonColor,
     required Color textColor,
     required void Function() onBtnTap,
@@ -118,93 +120,235 @@ class ReceivePOsScreen extends StatelessWidget {
     return GestureDetector(
       onTap: onBtnTap,
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade200),
-          borderRadius: BorderRadius.circular(10),
-          color: Colors.white,
+          color: white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: grey.withOpacity(0.25)),
           boxShadow: [
             BoxShadow(
               color: Colors.grey.shade100,
-              blurRadius: 3,
-              offset: const Offset(0, 2),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header row (PO #, Items)
+            // Header: PO Number + Status Badge
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(poNumber, style: AppTextStyle.semiBoldTextstyle),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      items,
-                      style: AppTextStyle.regularTextstyle.copyWith(
-                        fontSize: 14,
-                      ),
+                Text(
+                  poNumber,
+                  style: AppTextStyle.semiBoldTextstyle.copyWith(
+                    fontSize: 18,
+                    color: primary,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade600.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.grey.shade600.withOpacity(0.3),
                     ),
-                    if (status.isNotEmpty)
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        status.toLowerCase().contains('received') ||
+                                status.toLowerCase().contains('added')
+                            ? Icons.check_circle
+                            : status.toLowerCase().contains('partial')
+                            ? Icons.access_time
+                            : Icons.schedule,
+                        size: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                      const SizedBox(width: 6),
                       Text(
                         status,
-                        style: AppTextStyle.lableStyle.copyWith(fontSize: 14),
+                        style: AppTextStyle.semiBoldTextstyle.copyWith(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
                       ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 6),
-            Text(
-              'Special Order • Default Truck - HVAC Team',
-              style: AppTextStyle.lableStyle.copyWith(fontSize: 14),
+
+            const SizedBox(height: 16),
+
+            // Product Name — Highlighted & Beautiful
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: primary.withOpacity(0.3), width: 1.2),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: primary.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.inventory_2_outlined,
+                      color: primary,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Product",
+                          style: AppTextStyle.lableStyle.copyWith(
+                            fontSize: 11,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          productName,
+                          style: AppTextStyle.semiBoldTextstyle.copyWith(
+                            fontSize: 16,
+                            color: primary,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 10),
+
+            const SizedBox(height: 16),
+
+            // Items Count
+            Row(
+              children: [
+                Icon(Icons.shopping_cart_outlined, size: 16, color: grey),
+                const SizedBox(width: 8),
+                Text(
+                  items,
+                  style: AppTextStyle.semiBoldTextstyle.copyWith(fontSize: 14),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            // Date & Supplier Row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  date,
-                  style: AppTextStyle.lableStyle.copyWith(fontSize: 14),
+                Expanded(
+                  child: _buildInfoRow(
+                    icon: Icons.calendar_today_rounded,
+                    label: "Date",
+                    value: date,
+                  ),
                 ),
-                Text(
-                  supplier,
-                  style: AppTextStyle.lableStyle.copyWith(fontSize: 14),
+                Expanded(
+                  child: _buildInfoRow(
+                    icon: Icons.business_rounded,
+                    label: "Supplier",
+                    value: supplier,
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            // Action Button
-            Container(
-              width: double.infinity,
-              height: 38,
-              decoration: BoxDecoration(
-                color: buttonColor,
-                borderRadius: BorderRadius.circular(8),
+
+            const SizedBox(height: 4),
+            Text(
+              'Special Order • Default Truck - HVAC Team',
+              style: AppTextStyle.lableStyle.copyWith(
+                fontSize: 12,
+                color: Colors.grey[600],
               ),
-              child: Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.check_circle, color: textColor, size: 20),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Add to stock',
-                      style: AppTextStyle.semiBoldTextstyle.copyWith(
-                        color: textColor,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // Action Button — Now says "Add to stock"
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: onBtnTap,
+                icon: const Icon(Icons.check_circle, size: 20),
+                label: Text(
+                  status.toLowerCase().contains('received') ||
+                          status.toLowerCase().contains('added')
+                      ? 'Already Added'
+                      : 'Add to Stock',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: buttonColor,
+                  foregroundColor: textColor,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  // Reusable info row — keep this in your file
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: grey),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: AppTextStyle.lableStyle.copyWith(
+                fontSize: 11,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: AppTextStyle.semiBoldTextstyle.copyWith(fontSize: 14),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

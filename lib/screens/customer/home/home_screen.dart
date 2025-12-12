@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
+import '../../../controllers/ai_controller.dart';
 import '../../../controllers/category_controller.dart';
 import '../../../controllers/product_controller.dart';
 import '../../../utils/app_colors.dart';
+import '../buym8/chat_screen.dart';
 import '../category/user_categories_screen.dart';
 import '../product/my_favorites_screen.dart';
 import '../product/user_products_screen.dart';
@@ -17,6 +19,7 @@ class HomeScreen extends StatelessWidget {
     initialIndex: 0,
   );
   final productController = Get.put(ProductController());
+  final aiController = Get.put(AIController());
   final categoryController = Get.put(CategoryController());
   final GetStorage storage = GetStorage();
   List<Widget> _screens() {
@@ -25,6 +28,7 @@ class HomeScreen extends StatelessWidget {
       UserCategoryScreen(),
       FavoritesScreen(),
       UserProfileScreen(),
+      AIChatScreen(),
     ];
   }
 
@@ -51,6 +55,12 @@ class HomeScreen extends StatelessWidget {
       PersistentBottomNavBarItem(
         icon: const Icon(Icons.person_outline_rounded),
         title: "Profile",
+        activeColorPrimary: primary,
+        inactiveColorPrimary: grey,
+      ),
+      PersistentBottomNavBarItem(
+        icon: const Icon(Icons.bubble_chart_sharp),
+        title: "BuyM8",
         activeColorPrimary: primary,
         inactiveColorPrimary: grey,
       ),

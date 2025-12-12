@@ -37,6 +37,36 @@ class DiscountGroupController extends GetxController {
   RxInt totalPages = 0.obs;
   String searchQuery = "";
 
+  RxMap isGrpActive = <int, bool>{}.obs;
+
+  Future<void> activeInactiveHandle({
+    required int id,
+    required int index,
+  }) async {
+    isGrpActive[id] = !isGrpActive[id]!;
+    try {
+      final success = await DatabaseHelper.instance.updateGroupStatus(
+        id: id,
+        isActive: isGrpActive[id]!,
+      );
+      if (success) {
+        AppSnackbars.success('Success!', 'Group status updated successfully');
+      } else {
+        // Revert the UI state if DB update failed
+        isGrpActive[id] = !isGrpActive[id]!;
+        AppSnackbars.error(
+          'Error!',
+          'Failed to update group status. Please try again.',
+        );
+      }
+    } catch (e) {
+      // Revert the UI state if an error occurred
+      isGrpActive[id] = !isGrpActive[id]!;
+      log("Error updating group status: $e");
+      AppSnackbars.error('Error!', 'An error occurred: ${e.toString()}');
+    }
+  }
+
   // fetch all groups
   static Future<List<DiscountGroupModel>> fetchAllGroups({
     required int page,
@@ -52,6 +82,10 @@ class DiscountGroupController extends GetxController {
         limit: controller.pageSize,
         offset: (page - 1) * controller.pageSize,
       );
+      // Initialize or update isGrpActive map
+      for (var group in newGroups) {
+        controller.isGrpActive[group.groupId!] = group.isActive!;
+      }
       return newGroups;
     } catch (e) {
       log("error (fetchAllGroups) : : :  -- > ${e.toString()}");
@@ -80,10 +114,12 @@ class DiscountGroupController extends GetxController {
         DiscountGroupModel group = DiscountGroupModel(
           groupName: groupNameController.text,
           discountPercentage: double.parse(percentageController.text),
+          isActive: isActive.value,
         );
         var result = await DatabaseHelper.instance.insertGroup(group: group);
         if (result != null && result != 0) {
           clearControllers();
+          Get.back();
           AppSnackbars.success('Success!', "Group added successfully!");
           pagingController.refresh();
         } else {
@@ -94,11 +130,13 @@ class DiscountGroupController extends GetxController {
           groupId: groupID,
           groupName: groupNameController.text,
           discountPercentage: double.parse(percentageController.text),
+          isActive: isActive.value,
         );
 
         var result = await DatabaseHelper.instance.updateGroup(group: group);
         if (result != null && result != 0) {
           clearControllers();
+          Get.back();
           AppSnackbars.success('Success!', "Group updated successfully!");
           pagingController.refresh();
         } else {
@@ -120,6 +158,7 @@ class DiscountGroupController extends GetxController {
         groupNameController.text = result.groupName;
         discountGroupNameController.text = result.groupName;
         percentageController.text = result.discountPercentage.toString();
+        isActive.value = result.isActive;
       }
     } catch (e) {
       log("error (fetchGroupByID) : : : --> ${e.toString()}");
@@ -213,6 +252,12 @@ class DiscountGroupController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  // active inactive for edit screen
+  RxBool isActive = false.obs;
+  toggleActive(bool val) {
+    isActive.value = val;
   }
 
   clearAssignControllers() {

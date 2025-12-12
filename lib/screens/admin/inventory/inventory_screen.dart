@@ -9,7 +9,7 @@ import '../../../model/product_model.dart';
 import '../../../utils/app_colors.dart';
 import '../../../utils/app_textstyles.dart';
 import '../new arrivals/calculate_price.dart';
-import 'batch_report_screen.dart';
+import 'product_report_screen.dart';
 
 class InventoryScreen extends StatelessWidget {
   InventoryScreen({super.key});
@@ -723,6 +723,7 @@ class InventoryScreen extends StatelessWidget {
                         productName: item.productName ?? "Unknown Product",
                         totalSold: item.soldQty,
                       ),
+
                     );
                     await inventoryController.fetchProductReport(
                       item.productId!,

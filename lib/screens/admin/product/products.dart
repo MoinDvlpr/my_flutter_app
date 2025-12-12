@@ -1,12 +1,11 @@
+import 'dart:developer';
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_image_slideshow/flutter_image_slideshow.dart';
 import 'package:get/get.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:my_flutter_app/controllers/category_controller.dart';
 import 'package:my_flutter_app/widgets/appsubmitbtn.dart';
-
 import '../../../controllers/product_controller.dart';
 import '../../../model/product_model.dart';
 import '../../../utils/app_colors.dart';
@@ -20,7 +19,7 @@ class ProductsScreen extends StatelessWidget {
   ProductsScreen({super.key});
   final productController = Get.find<ProductController>();
   final categoryController = Get.find<CategoryController>();
-  final _debouncer = Debouncer(delay: Duration(microseconds: 500));
+  final _debouncer = Debouncer(delay: Duration(milliseconds: 800));
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -50,9 +49,9 @@ class ProductsScreen extends StatelessWidget {
                     },
                     backgroundColor: WidgetStatePropertyAll(bg),
                     hintText: 'Search',
-                    onChanged: (value) async {
+                    onChanged: (value) {
                       _debouncer.run(
-                        () => productController.updateSearchQuery(value.trim()),
+                        () => productController.search(value.trim()),
                       );
                     },
                     hintStyle: WidgetStatePropertyAll(AppTextStyle.lableStyle),
@@ -92,6 +91,11 @@ class ProductsScreen extends StatelessWidget {
                   padding: EdgeInsets.only(bottom: 100),
                   builderDelegate: PagedChildBuilderDelegate(
                     itemBuilder: (context, product, index) {
+                      productController.isProductActive[product.productId!] =
+                          product.isActive;
+                      log(
+                        "product id :::::: ::::: :::: ${product.productId} its status :::: ::::: ::::: :::: ${productController.isProductActive[product.productId!]} and itd db status :::::: ::::: ${product.isActive}",
+                      );
                       List<File> images = [];
                       if (product.productImage.isNotEmpty) {
                         // On load from DB
@@ -100,118 +104,244 @@ class ProductsScreen extends StatelessWidget {
                         );
                         images = imagePaths.map((p) => File(p)).toList();
                       }
+
                       return GestureDetector(
                         onTap: () async {
                           if (product.productId != null) {
                             Get.to(() => ProductDetail(product: product));
                           }
                         },
-                        child: Container(
-                          clipBehavior: Clip.hardEdge,
-
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12.0),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Flexible(
-                                child: product.productImage.isEmpty
-                                    ? Image.asset(
-                                        'assets/images/noimg.png',
-                                        fit: BoxFit.cover,
-                                      )
-                                    : ImageSlideshow(
-                                        isLoop: true,
-                                        children: images
-                                            .map(
-                                              (image) => image.existsSync()
-                                                  ? Image.file(
-                                                      image,
-                                                      fit: BoxFit.cover,
-                                                    )
-                                                  : Image.asset(
-                                                      'assets/images/noimg.png',
-                                                      fit: BoxFit.cover,
-                                                    ),
+                        child: Obx(
+                          () => Container(
+                            clipBehavior: Clip.hardEdge,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12.0),
+                              border: Border.all(
+                                color: product.isActive
+                                    ? Colors.green.withOpacity(0.3)
+                                    : Colors.grey.withOpacity(0.3),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Image Section with Status Badge
+                                Expanded(
+                                  flex: 3,
+                                  child: Stack(
+                                    children: [
+                                      product.productImage.isEmpty
+                                          ? Image.asset(
+                                              'assets/images/noimg.png',
+                                              fit: BoxFit.cover,
+                                              width: double.infinity,
                                             )
-                                            .toList(),
-                                      ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      product.productName,
-                                      style: AppTextStyle.boldTextstyle.copyWith(
-                                        fontSize:
-                                            14, // Smaller font for compact layout
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    Text(
-                                      product.stockQty > 0
-                                          ? '${product.stockQty} available'
-                                          : 'Not available',
-                                      style: AppTextStyle.semiBoldTextstyle
-                                          .copyWith(
-                                            fontSize:
-                                                12, // Smaller font for compact layout
-                                            color: product.stockQty > 0
+                                          : ImageSlideshow(
+                                              isLoop: true,
+                                              width: double.infinity,
+                                              height: double.infinity,
+                                              children: images
+                                                  .map(
+                                                    (image) =>
+                                                        image.existsSync()
+                                                        ? Image.file(
+                                                            image,
+                                                            fit: BoxFit.cover,
+                                                          )
+                                                        : Image.asset(
+                                                            'assets/images/noimg.png',
+                                                            fit: BoxFit.cover,
+                                                          ),
+                                                  )
+                                                  .toList(),
+                                            ),
+                                      // Status Badge
+                                      Positioned(
+                                        top: 6,
+                                        right: 6,
+                                        child: Container(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 3,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: product.isActive
                                                 ? Colors.green
-                                                : primary,
+                                                : Colors.grey,
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
                                           ),
-                                    ),
-                                    SizedBox(height: 10),
-                                    GlobalAppSubmitBtn(
-                                      title: 'Edit',
-                                      bgcolor: grey,
-                                      height: 34,
-                                      onTap: () async {
-                                        Get.to(
-                                          () => AddOrEditProductScreen(
-                                            productID: product.productId!,
+                                          child: Text(
+                                            productController
+                                                        .isProductActive[product
+                                                        .productId] ??
+                                                    product.isActive
+                                                ? 'Active'
+                                                : 'Inactive',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
-                                        );
-                                        productController.clearControllers();
-                                        productController
-                                                .categoryNameController
-                                                .text =
-                                            product.categoryName ?? '';
-                                        await productController
-                                            .fetchProductByID(
-                                              productID: product.productId!,
-                                            );
-                                      },
-                                    ),
-                                    SizedBox(height: 10),
-                                    GlobalAppSubmitBtn(
-                                      title: 'Delete',
-                                      height: 34,
-                                      onTap: () {
-                                        showDeleteConfirmationDialog(
-                                          onConfirm: () {
-                                            if (product.productId != null) {
-                                              productController.deleteProduct(
-                                                id: product.productId!,
-                                                index: index,
-                                              );
-                                            }
-                                          },
-                                          message: 'Are you sure ?',
-                                          title: 'Delete product',
-                                        );
-                                      },
-                                    ),
-                                  ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
+
+                                // Product Details Section
+                                Expanded(
+                                  flex: 4,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(10.0),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // Product Name
+                                        Text(
+                                          product.productName,
+                                          style: AppTextStyle.boldTextstyle
+                                              .copyWith(fontSize: 13),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        SizedBox(height: 4),
+
+                                        // Stock Info
+                                        Text(
+                                          product.stockQty > 0
+                                              ? '${product.stockQty} available'
+                                              : 'Not available',
+                                          style: AppTextStyle.semiBoldTextstyle
+                                              .copyWith(
+                                                fontSize: 11,
+                                                color: product.stockQty > 0
+                                                    ? Colors.green
+                                                    : primary,
+                                              ),
+                                        ),
+                                        SizedBox(height: 8),
+
+                                        // Active/Inactive Switch
+                                        Container(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey.shade50,
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                            border: Border.all(
+                                              color: Colors.grey.shade200,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                'Status',
+                                                style: AppTextStyle
+                                                    .semiBoldTextstyle
+                                                    .copyWith(fontSize: 11),
+                                              ),
+                                              Transform.scale(
+                                                scale: 0.7,
+                                                child: Switch(
+                                                  value:
+                                                      productController
+                                                          .isProductActive[product
+                                                          .productId] ??
+                                                      product.isActive,
+
+                                                  onChanged: (value) async {
+                                                    // Update product status
+                                                    await productController
+                                                        .activeInactiveProductHandle(
+                                                          id: product
+                                                              .productId!,
+                                                          index: index,
+                                                          val: value,
+                                                        );
+                                                  },
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        SizedBox(height: 16),
+
+                                        // Action Buttons Row
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: GlobalAppSubmitBtn(
+                                                title: 'Edit',
+                                                bgcolor: grey,
+                                                height: 32,
+                                                onTap: () async {
+                                                  Get.to(
+                                                    () =>
+                                                        AddOrEditProductScreen(
+                                                          productID: product
+                                                              .productId!,
+                                                        ),
+                                                  );
+                                                  productController
+                                                      .clearControllers();
+                                                  productController
+                                                          .categoryNameController
+                                                          .text =
+                                                      product.categoryName ??
+                                                      '';
+                                                  await productController
+                                                      .fetchProductByID(
+                                                        productID:
+                                                            product.productId!,
+                                                      );
+                                                },
+                                              ),
+                                            ),
+                                            SizedBox(width: 6),
+                                            Expanded(
+                                              child: GlobalAppSubmitBtn(
+                                                title: 'Delete',
+                                                height: 32,
+                                                onTap: () {
+                                                  showDeleteConfirmationDialog(
+                                                    onConfirm: () {
+                                                      if (product.productId !=
+                                                          null) {
+                                                        productController
+                                                            .deleteProduct(
+                                                              id: product
+                                                                  .productId!,
+                                                              index: index,
+                                                            );
+                                                      }
+                                                    },
+                                                    message: 'Are you sure?',
+                                                    title: 'Delete product',
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       );

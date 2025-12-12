@@ -8,9 +8,9 @@ import '../../../widgets/appsubmitbtn.dart';
 import '../../../widgets/global_textfield.dart';
 
 class AddEditSupplierScreen extends StatelessWidget {
-  AddEditSupplierScreen({super.key,this.supplierID,});
-final int? supplierID;
-final controller = Get.find<SupplierController>();
+  AddEditSupplierScreen({super.key, this.supplierID});
+  final int? supplierID;
+  final controller = Get.find<SupplierController>();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   @override
   Widget build(BuildContext context) {
@@ -56,9 +56,41 @@ final controller = Get.find<SupplierController>();
                     LengthLimitingTextInputFormatter(10),
                   ],
                 ),
+                SizedBox(height: 10),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Row(
+                    children: [
+                      Text('Active ?'),
+                      SizedBox(width: 4.0),
+                      Transform.scale(
+                        scale: 0.7,
+                        child: Obx(
+                          () => Switch(
+                            trackColor: WidgetStatePropertyAll(
+                              controller.isActive.value
+                                  ? Colors.green
+                                  : primary,
+                            ),
+                            inactiveThumbColor: white,
+                            value: controller.isActive.value,
+                            thumbIcon: WidgetStatePropertyAll(
+                              controller.isActive.value
+                                  ? Icon(Icons.check, color: Colors.green)
+                                  : Icon(Icons.close, color: primary),
+                            ),
+                            onChanged: (bool val) {
+                              controller.toggleActive(val);
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 SizedBox(height: 20),
                 Obx(
-                      () => GlobalAppSubmitBtn(
+                  () => GlobalAppSubmitBtn(
                     title: supplierID != null ? 'Save' : 'Add',
                     isLoading: controller.isLoading.value,
                     onTap: () {

@@ -404,6 +404,7 @@ class OrderController extends GetxController
   RxString paymentMethod = "".obs;
   RxDouble totalPaidAmount = 0.0.obs;
   RxString orderStatus = "".obs;
+  RxDouble deliveryCharge = 0.0.obs;
 
   // fetch order by id
   Future<void> fetchOrderByID(int orderID) async {
@@ -420,6 +421,7 @@ class OrderController extends GetxController
         paymentMethod.value = result.paymentMethod;
         totalPaidAmount.value = result.totalAmount;
         orderStatus.value = result.orderStatus;
+        deliveryCharge.value = result.deliveryCharge;
       }
     } catch (e) {
       log("error (fetchOrderByID) : : : : : ${e.toString()} ");

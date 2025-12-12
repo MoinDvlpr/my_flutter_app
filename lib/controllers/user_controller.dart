@@ -6,6 +6,7 @@ import 'package:get_storage/get_storage.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:my_flutter_app/utils/app_constant.dart';
 import '../dbservice/db_helper.dart';
+import '../model/order_model.dart';
 import '../model/usermodel.dart';
 import '../widgets/app_snackbars.dart';
 
@@ -21,7 +22,6 @@ class UserController extends GetxController {
 
   @override
   void onInit() async {
-    // await fetchAllUsers(isInitial: true);
     fetchUser();
     super.onInit();
     pagingController.refresh();
@@ -75,6 +75,46 @@ class UserController extends GetxController {
     pagingController.refresh(); // Refresh the list when search changes
   }
 
+  // is active inactive
+  RxMap<int, bool> isUserActive = <int, bool>{}.obs;
+
+  // active inactive handle
+  Future<void> activeInactiveHandle({
+    required int id,
+    required int index,
+    required bool isActive,
+  }) async {
+    try {
+      final success = await DatabaseHelper.instance.updateUserStatus(
+        id: id,
+        isActive: isActive ? 1 : 0,
+      );
+      if (success) {
+        isUserActive[id] = isActive;
+        Get.closeAllSnackbars();
+        AppSnackbars.success(
+          'Success!',
+          'User ${isActive ? 'activated' : 'deactivated'} successfully!',
+        );
+      } else {
+        // If DB call explicitly indicates failure (e.g., returns false),
+        // revert or ensure UI state reflects failure.
+        Get.closeAllSnackbars();
+        AppSnackbars.error(
+          'Error!',
+          'Failed to update user status in the database.',
+        );
+      }
+    } catch (e) {
+      log("Error updating user status for id $id: $e");
+      Get.closeAllSnackbars();
+      AppSnackbars.error(
+        'Error!',
+        'An error occurred while updating user status: $e',
+      );
+    }
+  }
+
   // Add OR Edit User
   TextEditingController nameController = TextEditingController();
   TextEditingController contactController = TextEditingController();
@@ -94,6 +134,7 @@ class UserController extends GetxController {
         contactController.text = user.contact.toString();
         emailController.text = user.email;
         passController.text = user.password;
+        isActive.value = user.isActive;
       }
     } catch (e) {
       log("error (fetchUserForEdit) : : : --> ${e.toString()}");
@@ -116,6 +157,7 @@ class UserController extends GetxController {
         email: emailController.text.trim(),
         password: passController.text.trim(),
         role: "User",
+        isActive: isActive.value,
       );
       var result = await DatabaseHelper.instance.updateUser(
         user: user,
@@ -205,6 +247,57 @@ class UserController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  late int userID;
+  // fetch users orders
+  Future<List<OrderModel>> fetchUsersOrders({required int page}) async {
+    try {
+      if (userID != null) {
+        return await DatabaseHelper.instance.getAllUserOrders(
+          userID,
+          limit: pageSize,
+          offset: (page - 1) * pageSize,
+        );
+      } else {
+        return [];
+      }
+    } catch (e) {
+      log("error (fetchUsersOrders) : : : : : : ${e.toString()}");
+      return [];
+    }
+  }
+
+  // users statistics
+  Map<String, dynamic>? userStats;
+  RxBool isLoadingStats = true.obs;
+
+  RxInt totalOrders = 0.obs;
+  RxDouble totalRevenue = 0.0.obs;
+  RxDouble totalDiscount = 0.0.obs;
+
+  // Fetch user statistics
+  Future<void> fetchUserStats(int userId) async {
+    try {
+      isLoadingStats.value = true;
+      final result = await DatabaseHelper.instance.getUserStats(userId);
+      if (result != null) {
+        userStats = result;
+        totalOrders.value = userStats!['totalOrders'];
+        totalRevenue.value = userStats!['totalRevenue'];
+        totalDiscount.value = userStats!['totalDiscount'];
+      }
+    } catch (e) {
+      log("error (fetchUserStats) : : : ${e.toString()}");
+    } finally {
+      isLoadingStats.value = false;
+    }
+  }
+
+  // active inactive for edit screen
+  RxBool isActive = false.obs;
+  toggleActive(bool val) {
+    isActive.value = val;
   }
 
   // clear all controllers

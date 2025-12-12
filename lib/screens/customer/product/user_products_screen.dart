@@ -154,8 +154,7 @@ class UserProductsScreen extends StatelessWidget {
         onChanged: (value) async {
           _debouncer.run(() {
             productController.search(value.trim());
-          },);
-
+          });
         },
         decoration: InputDecoration(
           hintText: 'Search products...',

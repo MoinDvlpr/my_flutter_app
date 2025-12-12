@@ -15,7 +15,6 @@ class DashboardController extends GetxController {
     fetchDashboardData();
     fetchProfitLossData();
     fetchMostSellingProducts(isInitial: true);
-
     fetchTopProfitProducts();
     fetchTopLossProducts();
     _loadOrderLocations(); // Load order locations on init

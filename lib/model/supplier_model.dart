@@ -1,4 +1,3 @@
-
 import '../utils/app_constant.dart';
 
 class SupplierModel {
@@ -6,12 +5,14 @@ class SupplierModel {
   final String supplierName;
   final int contact;
   int isDeleted;
+  bool isActive;
 
   SupplierModel({
     this.supplierId,
     required this.supplierName,
     required this.contact,
     required this.isDeleted,
+    required this.isActive,
   });
 
   // Convert Map from DB to UserModel
@@ -20,7 +21,8 @@ class SupplierModel {
       supplierId: map[SUPPLIER_ID],
       supplierName: map[SUPPLIER_NAME],
       contact: map[CONTACT],
-        isDeleted:map[IS_DELETED]
+      isDeleted: map[IS_DELETED],
+      isActive: map[IS_ACTIVE] == 1,
     );
   }
 
@@ -29,8 +31,9 @@ class SupplierModel {
     return {
       SUPPLIER_ID: supplierId,
       SUPPLIER_NAME: supplierName,
-      CONTACT:contact,
-      IS_DELETED: isDeleted
+      CONTACT: contact,
+      IS_DELETED: isDeleted,
+      IS_ACTIVE: isActive ? 1 : 0,
     };
   }
 }

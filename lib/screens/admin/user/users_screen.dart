@@ -56,52 +56,149 @@ class UsersScreen extends StatelessWidget {
                       fetchNextPage: fetchNextPage,
                       builderDelegate: PagedChildBuilderDelegate(
                         itemBuilder: (context, user, index) {
-                          return GestureDetector(
-                            onTap: () async {
-                              discountGroupController.clearControllers();
-                              discountGroupController.clearControllers();
-                              if (user.groupId != null) {
-                                await discountGroupController.fetchGroupByID(
-                                  groupID: user.groupId!,
-                                );
-                              }
+                          userController.isUserActive[user.userId!] ??
+                              user.isActive;
+                          return Obx(
+                            () => GestureDetector(
+                              onTap: () async {
+                                discountGroupController.clearControllers();
+                                discountGroupController.clearControllers();
+                                if (user.groupId != null) {
+                                  await discountGroupController.fetchGroupByID(
+                                    groupID: user.groupId!,
+                                  );
+                                }
 
-                              Get.to(() => UserInfoScreen(user: user));
-                            },
-                            child: Container(
-                              padding: EdgeInsets.all(16.0),
-                              decoration: BoxDecoration(
-                                border: index != userController.users.length - 1
-                                    ? Border(
-                                        bottom: BorderSide(
-                                          width: 0.6,
-                                          color: grey,
+                                Get.to(
+                                  () =>
+                                      UserInfoScreen(user: user, index: index),
+                                );
+                                await userController.fetchUserStats(
+                                  user.userId!,
+                                );
+                              },
+                              child: Container(
+                                padding: EdgeInsets.all(16.0),
+                                decoration: BoxDecoration(
+                                  border:
+                                      index != userController.users.length - 1
+                                      ? Border(
+                                          bottom: BorderSide(
+                                            width: 0.6,
+                                            color: grey,
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      backgroundColor: grey.withValues(
+                                        alpha: 0.2,
+                                      ),
+                                      radius: 25,
+                                      child: Icon(
+                                        Icons.person,
+                                        color: white,
+                                        size: 30,
+                                      ),
+                                    ),
+                                    SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        user.userName,
+                                        style: AppTextStyle.regularTextstyle,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    (userController.isUserActive[user
+                                                .userId!] ??
+                                            user.isActive)
+                                        ? Container(
+                                            decoration: BoxDecoration(
+                                              color: Colors.green.shade100,
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                            ),
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 6.0,
+                                                    vertical: 2,
+                                                  ),
+                                              child: Text(
+                                                'Active',
+                                                style: AppTextStyle
+                                                    .semiBoldTextstyle
+                                                    .copyWith(
+                                                      color: Colors.green,
+                                                      fontSize: 12,
+                                                    ),
+                                              ),
+                                            ),
+                                          )
+                                        : Container(
+                                            decoration: BoxDecoration(
+                                              color: Colors.red.shade100,
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                            ),
+                                            child: Padding(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 6.0,
+                                                    vertical: 2,
+                                                  ),
+                                              child: Text(
+                                                'Inactive',
+                                                style: AppTextStyle
+                                                    .semiBoldTextstyle
+                                                    .copyWith(
+                                                      color: Colors.red,
+                                                      fontSize: 12,
+                                                    ),
+                                              ),
+                                            ),
+                                          ),
+                                    Transform.scale(
+                                      scale: 0.7,
+                                      child: Switch(
+                                        trackColor: WidgetStatePropertyAll(
+                                          userController.isUserActive[user
+                                                      .userId!] ??
+                                                  user.isActive
+                                              ? Colors.green
+                                              : primary,
                                         ),
-                                      )
-                                    : null,
-                              ),
-                              child: Row(
-                                children: [
-                                  CircleAvatar(
-                                    backgroundColor: grey.withValues(
-                                      alpha: 0.2,
+                                        inactiveThumbColor: white,
+                                        value:
+                                            userController.isUserActive[user
+                                                .userId!] ??
+                                            user.isActive,
+                                        thumbIcon: WidgetStatePropertyAll(
+                                          userController.isUserActive[user
+                                                      .userId!] ??
+                                                  user.isActive
+                                              ? Icon(
+                                                  Icons.check,
+                                                  color: Colors.green,
+                                                )
+                                              : Icon(
+                                                  Icons.close,
+                                                  color: primary,
+                                                ),
+                                        ),
+                                        onChanged: (bool val) {
+                                          userController.activeInactiveHandle(
+                                            id: user.userId!,
+                                            index: index,
+                                            isActive: val,
+                                          );
+                                        },
+                                      ),
                                     ),
-                                    radius: 25,
-                                    child: Icon(
-                                      Icons.person,
-                                      color: white,
-                                      size: 30,
-                                    ),
-                                  ),
-                                  SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      user.userName,
-                                      style: AppTextStyle.regularTextstyle,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           );

@@ -14,37 +14,42 @@ class InitialDataFill {
       EMAIL: 'admin@example.com',
       PASSWORD: 'admin123',
       ROLE: 'admin',
+      IS_ACTIVE: 1,
     });
 
     // Bulk insert categories
-    await db.insert(CATEGORIES, {CATEGORY_NAME: 'Men'});
-    await db.insert(CATEGORIES, {CATEGORY_NAME: 'Women'});
-    await db.insert(CATEGORIES, {CATEGORY_NAME: 'Kids'});
-    await db.insert(CATEGORIES, {CATEGORY_NAME: 'Accessories'});
-    await db.insert(CATEGORIES, {CATEGORY_NAME: 'Shoes'});
+    await db.insert(CATEGORIES, {CATEGORY_NAME: 'Men', IS_ACTIVE: 1});
+    await db.insert(CATEGORIES, {CATEGORY_NAME: 'Women', IS_ACTIVE: 1});
+    await db.insert(CATEGORIES, {CATEGORY_NAME: 'Kids', IS_ACTIVE: 1});
+    await db.insert(CATEGORIES, {CATEGORY_NAME: 'Accessories', IS_ACTIVE: 1});
+    await db.insert(CATEGORIES, {CATEGORY_NAME: 'Shoes', IS_ACTIVE: 1});
 
     for (int i = 1; i <= 5; i++) {
-      await db.insert(CATEGORIES, {CATEGORY_NAME: 'Category $i'});
+      await db.insert(CATEGORIES, {CATEGORY_NAME: 'Category $i', IS_ACTIVE: 1});
     }
 
     // Bulk insert discount groups
     await db.insert(DISCOUNT_GROUPS, {
       GROUP_NAME: 'Bronze',
       DISCOUNT_PERCENTAGE: 5,
+      IS_ACTIVE: 1,
     });
     await db.insert(DISCOUNT_GROUPS, {
       GROUP_NAME: 'Silver',
       DISCOUNT_PERCENTAGE: 10,
+      IS_ACTIVE: 1,
     });
     await db.insert(DISCOUNT_GROUPS, {
       GROUP_NAME: 'Gold',
       DISCOUNT_PERCENTAGE: 15,
+      IS_ACTIVE: 1,
     });
 
     for (int i = 16; i < 20; i++) {
       await db.insert(DISCOUNT_GROUPS, {
         GROUP_NAME: 'Discount $i',
         DISCOUNT_PERCENTAGE: i,
+        IS_ACTIVE: 1,
       });
     }
 
@@ -56,6 +61,7 @@ class InitialDataFill {
         EMAIL: 'user$i@example.com',
         PASSWORD: 'password123',
         ROLE: 'User',
+        IS_ACTIVE: i % 2 == 0 ? 1 : 0,
         GROUP_ID: (i % 3) + 1,
       });
     }
@@ -66,6 +72,7 @@ class InitialDataFill {
         SUPPLIER_NAME: 'Supplier $i',
         CONTACT: 9000000000 + i,
         IS_DELETED: 0,
+        IS_ACTIVE: i % 2 == 0 ? 1 : 0,
       });
     }
 
@@ -90,6 +97,7 @@ class InitialDataFill {
         SOLD_QTY: 0, // Will be updated during order creation
         INSERT_DATE: DateTime.now().toIso8601String(),
         CATEGORY_ID: (i % 5) + 1,
+        IS_ACTIVE: 1,
       });
 
       // Create inventory record for each product
@@ -109,7 +117,7 @@ class InitialDataFill {
         await db.insert(INVENTORY_ITEMS, {
           INVENTORY_ID: inventoryId,
           SERIAL_NUMBER:
-          'SR-$productId-${Uuid().v4().replaceAll('-', '').substring(0, 8).toUpperCase()}-$j',
+              'SR-$productId-${Uuid().v4().replaceAll('-', '').substring(0, 8).toUpperCase()}-$j',
           IS_SOLD: 0,
         });
       }
@@ -255,14 +263,13 @@ class InitialDataFill {
             .toIso8601String(),
         SHIPPING_ADDRESS: shippingAddress,
         CUSTOMER_NAME: customerName,
-        PAYMENT_METHOD:
-        paymentMethods[random.nextInt(paymentMethods.length)],
-        RP_ORDER_ID:
-        'RP_${DateTime.now().millisecondsSinceEpoch}_$orderNum',
+        PAYMENT_METHOD: paymentMethods[random.nextInt(paymentMethods.length)],
+        RP_ORDER_ID: 'RP_${DateTime.now().millisecondsSinceEpoch}_$orderNum',
         RP_PAYMENT_ID: null,
         RP_SIGNATURE: null,
         TOTAL_QTY: totalQty,
-        TOTAL_AMOUNT: totalAmount,
+        DELIVERY_CHARGE: 150.0,
+        TOTAL_AMOUNT: totalAmount + 150.0,
         LATITUDE: latitude,
         LONGITUDE: longitude,
       });
@@ -279,5 +286,10 @@ class InitialDataFill {
     log(
       '✅ All stock quantities, sold quantities, and serial numbers are properly maintained.',
     );
+
+    // Insert initial metadata
+    await db.insert(CHAT_METADATA, {
+      'last_reset': DateTime.now().toIso8601String(),
+    });
   }
 }

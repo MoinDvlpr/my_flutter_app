@@ -56,6 +56,39 @@ class AddEditDiscountGroup extends StatelessWidget {
                     }
                   },
                 ),
+                SizedBox(height: 10),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Row(
+                    children: [
+                      Text('Active ?'),
+                      SizedBox(width: 4.0),
+                      Transform.scale(
+                        scale: 0.7,
+                        child: Obx(
+                          () => Switch(
+                            trackColor: WidgetStatePropertyAll(
+                              discountGroupController.isActive.value
+                                  ? Colors.green
+                                  : primary,
+                            ),
+                            inactiveThumbColor: white,
+                            value: discountGroupController.isActive.value,
+                            thumbIcon: WidgetStatePropertyAll(
+                              discountGroupController.isActive.value
+                                  ? Icon(Icons.check, color: Colors.green)
+                                  : Icon(Icons.close, color: primary),
+                            ),
+                            onChanged: (bool val) {
+                              discountGroupController.toggleActive(val);
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
                 SizedBox(height: 32),
                 Obx(
                   () => Padding(

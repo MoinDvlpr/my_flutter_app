@@ -15,6 +15,7 @@ class OrderModel {
   double longitude;
   int totalQuantity;
   double totalAmount;
+  double deliveryCharge;
 
   OrderModel({
     this.orderId,
@@ -31,6 +32,7 @@ class OrderModel {
     this.razorpaySignature,
     required this.totalQuantity,
     required this.totalAmount,
+    required this.deliveryCharge,
   });
 
   Map<String, dynamic> toMap() {
@@ -46,6 +48,7 @@ class OrderModel {
       RP_PAYMENT_ID: razorpayPaymentId,
       RP_SIGNATURE: razorpaySignature,
       TOTAL_QTY: totalQuantity,
+      DELIVERY_CHARGE: deliveryCharge,
       TOTAL_AMOUNT: totalAmount,
       LATITUDE: latitude,
       LONGITUDE: longitude,
@@ -65,6 +68,7 @@ class OrderModel {
       razorpayPaymentId: map[RP_PAYMENT_ID],
       razorpaySignature: map[RP_SIGNATURE],
       totalQuantity: map[TOTAL_QTY],
+      deliveryCharge: map[DELIVERY_CHARGE].toDouble(),
       totalAmount: map[TOTAL_AMOUNT].toDouble(),
       latitude: map[LATITUDE].toDouble(),
       longitude: map[LONGITUDE].toDouble(),

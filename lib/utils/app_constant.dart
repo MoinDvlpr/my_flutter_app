@@ -83,6 +83,7 @@ const String SERIAL_NUMBERS = "serial_numbers";
 // const String STATE = ;
 // const String COUNTRY = ;
 // const String ZIPCODE = ;
+const String DELIVERY_CHARGE = "delivery_charge";
 const String CUSTOMER_NAME = "customer_name";
 const String PAYMENT_METHOD = "payment_method";
 // Razorpay fields
@@ -148,3 +149,22 @@ const String MARKET_RATE = 'market_rate';
 const String IS_DELETED = 'is_deleted';
 
 const String IS_RECEIVED = 'is_received';
+
+// -------------------------------
+// CHAT MESSAGES TABLE
+// -------------------------------
+const String CHAT_MESSAGES = 'chat_messages';
+
+const String CHAT_MSG_ID = 'chat_msg_id';
+const String MESSAGE = 'message';
+const String IS_USER = 'isUser';
+const String TIMESTAMP = 'timestamp';
+
+// -------------------------------
+// CHAT METADATA TABLE
+// -------------------------------
+const String CHAT_METADATA = 'chat_metadata';
+const String IS_ACTIVE = 'is_active';
+const String CHAT_METADATA_ID = 'chat_metadata_id';
+const String LAST_RESET = 'last_reset';
+const String CONTENT = 'content';

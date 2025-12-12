@@ -133,14 +133,16 @@ class ProductController extends GetxController {
           selectedImages.addAll(imagePaths.map((p) => File(p)).toList());
         }
         productNameController.text = product!.productName;
-        productPriceController.text = product!.price.toString();
-        marketPriceController.text = product!.marketPrice.toString();
-        productCostPriceController.text = product!.costPrice.toString();
-        productStockController.text = product!.stockQty.toString();
+        productPriceController.text = (product!.price ?? 0.0).toString();
+        marketPriceController.text = (product!.marketPrice ?? 0.0).toString();
+        productCostPriceController.text = (product!.costPrice ?? 0.0)
+            .toString();
+        productStockController.text = (product!.stockQty ?? 0).toString();
         productDescController.text = product!.description ?? '';
         setCategoryID = product!.categoryId;
         insertDate = product!.insertDate;
         soldQty = product!.soldQty;
+        isActive.value = product!.isActive;
       } else {
         Get.closeAllSnackbars();
         AppSnackbars.error('Failed!', "Failed to fetch product!");
@@ -173,6 +175,7 @@ class ProductController extends GetxController {
               categoryId: categoryID!.value,
               productImage: imagePaths,
               soldQty: 0,
+              isActive: isActive.value,
               insertDate: DateTime.now().toString(),
             );
             var result = await DatabaseHelper.instance.insertProduct(
@@ -202,6 +205,11 @@ class ProductController extends GetxController {
           } else {
             imagePaths = "";
           }
+
+          log(
+            ': : : : : : : : : : : : ${productCostPriceController.text.trim()}',
+          );
+
           ProductModel product = ProductModel(
             productId: productID,
             marketPrice: double.parse(marketPriceController.text.trim()),
@@ -209,6 +217,7 @@ class ProductController extends GetxController {
             productName: productNameController.text.trim(),
             price: double.parse(productPriceController.text.trim()),
             costPrice: double.parse(productCostPriceController.text.trim()),
+            isActive: isActive.value,
             stockQty: int.parse(
               productStockController.text.isEmpty
                   ? "0"
@@ -577,5 +586,43 @@ class ProductController extends GetxController {
 
   setCatIDNull() {
     _categoryID = null;
+  }
+
+  // Active or inactive product
+  RxMap<int, bool> isProductActive = <int, bool>{}.obs;
+
+  Future<void> activeInactiveProductHandle({
+    required int id,
+    required int index,
+    required bool val,
+  }) async {
+    try {
+      final success = await DatabaseHelper.instance.updateProductStatus(
+        id: id,
+        isActive: val ? 1 : 0,
+      );
+
+      if (success) {
+        isProductActive[id] = val;
+        Get.closeAllSnackbars();
+        AppSnackbars.success('Success!', 'Product status updated successfully');
+      } else {
+        Get.closeAllSnackbars();
+        AppSnackbars.error(
+          'Error!',
+          'Failed to update product status. Please try again.',
+        );
+      }
+    } catch (e) {
+      log("Error updating product status: $e");
+      Get.closeAllSnackbars();
+      AppSnackbars.error('Error!', 'An error occurred: ${e.toString()}');
+    }
+  }
+
+  // active inactive for edit screen
+  RxBool isActive = false.obs;
+  toggleActive(bool val) {
+    isActive.value = val;
   }
 }

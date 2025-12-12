@@ -2,7 +2,9 @@ import 'dart:developer';
 
 import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
+import 'package:my_flutter_app/utils/app_constant.dart';
 
 import '../dbservice/db_helper.dart';
 import '../model/category_model.dart';
@@ -25,6 +27,9 @@ class CategoryController extends GetxController {
     super.onInit();
   }
 
+  // for get current logged in user
+  final storage = GetStorage();
+
   @override
   void onClose() {
     pagingController.dispose();
@@ -45,6 +50,7 @@ class CategoryController extends GetxController {
       final newCategories = await DatabaseHelper.instance.getAllCategories(
         searchQuery: query,
         limit: controller.pageSize,
+        userId: Get.find<CategoryController>().storage.read(USERID),
         offset: (page - 1) * controller.pageSize, // Offset for pagination
       );
       return newCategories;
@@ -58,6 +64,47 @@ class CategoryController extends GetxController {
   void updateSearchQuery(String query) {
     searchQuery = query;
     pagingController.refresh(); // Refresh the list when search changes
+  }
+
+  // is active inactive
+  RxMap<int, bool> isCatActive = <int, bool>{}.obs;
+
+  // active inactive handle
+  Future<void> activeInactiveHandle({
+    required int id,
+    required int index,
+  }) async {
+    final currentStatus =
+        isCatActive[id] ?? true; // Assume active if not explicitly set
+    final newStatus = !currentStatus;
+
+    try {
+      final success = await DatabaseHelper.instance.updateCategoryStatus(
+        id: id,
+        isActive: newStatus,
+      );
+      if (success) {
+        isCatActive[id] = newStatus;
+        AppSnackbars.success(
+          'Success!',
+          'Category ${newStatus ? 'activated' : 'deactivated'} successfully!',
+        );
+        pagingController.refresh(); // Refresh the list to reflect status change
+      } else {
+        // If DB call explicitly indicates failure (e.g., returns false),
+        // revert or ensure UI state reflects failure.
+        AppSnackbars.error(
+          'Error!',
+          'Failed to update category status in the database.',
+        );
+      }
+    } catch (e) {
+      log("Error updating category status for id $id: $e");
+      AppSnackbars.error(
+        'Error!',
+        'An error occurred while updating category status: $e',
+      );
+    }
   }
 
   /// fetch all categories without infinite
@@ -78,6 +125,7 @@ class CategoryController extends GetxController {
       final newCategories = await DatabaseHelper.instance.getAllCategories(
         searchQuery: query,
         limit: pageSize,
+        userId: storage.read(USERID),
         offset: page ?? 1 * pageSize,
       );
       totalPages.value = await DatabaseHelper.instance.getTotalCategoryPages(
@@ -108,6 +156,7 @@ class CategoryController extends GetxController {
       if (categoryID == null) {
         var result = await DatabaseHelper.instance.insertCategory(
           catgoryname: categoryNameController.text.trim(),
+          isActive: isActive.value,
         );
         if (result != null && result != 0) {
           categoryNameController.clear();
@@ -123,13 +172,14 @@ class CategoryController extends GetxController {
         var result = await DatabaseHelper.instance.updateCategory(
           catID: categoryID,
           catgoryname: categoryNameController.text.trim(),
+          isActive: isActive.value,
         );
         if (result != null && result != 0) {
           categoryNameController.clear();
           Get.back();
           Get.closeAllSnackbars();
           AppSnackbars.success('Success!', "Category updated successfully!");
-          await fetchAllCategories(isInitial: true);
+          pagingController.refresh();
         } else if (result == null) {
           Get.closeAllSnackbars();
           AppSnackbars.error('Failed', "Failed to update category");
@@ -171,6 +221,12 @@ class CategoryController extends GetxController {
       );
       log("error (deleteCategory (controller)) : : :  -- > ${e.toString()}");
     }
+  }
+
+  // active inactive for edit screen
+  RxBool isActive = false.obs;
+  toggleActive(bool val) {
+    isActive.value = val;
   }
 
   @override

@@ -1,4 +1,3 @@
-
 import '../utils/app_constant.dart';
 
 class UserModel {
@@ -9,6 +8,7 @@ class UserModel {
   final String password;
   final String role;
   final int? groupId;
+  final bool isActive;
 
   UserModel({
     this.userId,
@@ -17,6 +17,7 @@ class UserModel {
     required this.email,
     required this.password,
     required this.role,
+    required this.isActive,
     this.groupId,
   });
 
@@ -29,6 +30,7 @@ class UserModel {
       email: map[EMAIL],
       password: map[PASSWORD],
       role: map[ROLE],
+      isActive: map[IS_ACTIVE] == 1,
       groupId: map[GROUP_ID], // Foreign key, optional
     );
   }
@@ -38,11 +40,12 @@ class UserModel {
     return {
       USERID: userId,
       USERNAME: userName,
-      CONTACT:contact,
+      CONTACT: contact,
       EMAIL: email,
       PASSWORD: password,
       ROLE: role,
-      GROUP_ID : groupId, // foreign key
+      IS_ACTIVE: isActive ? 1 : 0,
+      GROUP_ID: groupId, // foreign key
     };
   }
 }

@@ -82,7 +82,7 @@ class AdminDrawer extends StatelessWidget {
                 supplierController.searchQuery = "";
                 Get.to(() => SuppliersScreen());
               },
-              leading: Icon(Icons.people),
+              leading: Icon(Icons.business),
               title: Text('Suppliers', style: AppTextStyle.lableStyle),
             ),
             ListTile(
