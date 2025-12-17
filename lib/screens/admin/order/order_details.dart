@@ -140,47 +140,55 @@ class OrderDetails extends StatelessWidget {
   }
 
   Widget _buildOrderHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              orderController.razorpayOrderID.value,
-              style: AppTextStyle.semiBoldTextstyle,
-            ),
-            SizedBox(height: 4.0),
-            Text(
-              'Status',
-              style: AppTextStyle.semiBoldTextstyle.copyWith(fontSize: 14),
-            ),
-          ],
+        Text(
+          orderController.razorpayOrderID.value,
+          style: AppTextStyle.semiBoldTextstyle,
         ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
+        SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              orderController.orderDate.value.isNotEmpty
-                  ? orderController.formatOrderDate(
-                      orderController.orderDate.value,
-                    )
-                  : 'dd mm yyyy',
-              style: AppTextStyle.regularTextstyle.copyWith(fontSize: 14),
-            ),
-            const SizedBox(height: 4),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                orderController.orderStatus.value,
-                style: AppTextStyle.regularTextstyle.copyWith(
-                  color: Colors.green,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Status',
+                  style: AppTextStyle.semiBoldTextstyle.copyWith(fontSize: 14),
                 ),
-              ),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  orderController.orderDate.value.isNotEmpty
+                      ? orderController.formatOrderDate(
+                          orderController.orderDate.value,
+                        )
+                      : 'dd mm yyyy',
+                  style: AppTextStyle.regularTextstyle.copyWith(fontSize: 14),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    orderController.orderStatus.value,
+                    style: AppTextStyle.regularTextstyle.copyWith(
+                      color: Colors.green,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

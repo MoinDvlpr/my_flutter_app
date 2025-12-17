@@ -67,6 +67,7 @@ class MyCartScreen extends StatelessWidget {
                         ),
                 ),
               ),
+
               Obx(
                 () => Visibility(
                   visible:
@@ -81,7 +82,7 @@ class MyCartScreen extends StatelessWidget {
                       onTap: () async {
                         var isAvailable = await cartController.checkStock();
                         if (isAvailable) {
-                          cartController.createOrderFromCart();
+                          cartController.createOrderWithStripe();
                         } else {
                           Get.closeAllSnackbars();
                           AppSnackbars.warning(

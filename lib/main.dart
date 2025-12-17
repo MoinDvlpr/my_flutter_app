@@ -1,6 +1,6 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:my_flutter_app/utils/app_constant.dart';
@@ -14,21 +14,21 @@ import 'screens/customer/home/home_screen.dart';
 import 'utils/app_colors.dart';
 
 Future<void> main() async {
-  log(":::: :::: :::: :::: ::: ::: ::: ::: main called");
   WidgetsFlutterBinding.ensureInitialized();
-  log(
-    ":::: :::: :::: :::: ::: ::: ::: :::WidgetsFlutterBinding.ensureInitialized() called",
-  );
+
+  // intialize stripe with publishable key
+  Stripe.publishableKey =
+      "pk_test_51SdOtz5oAT1cyUg4kL0ZPFv3mTjB3u16IcLtML5UkZtk2dRatYeRr8JzQWvlNlntyZXplALWDZLtXos9cGrzBfho00nsV2pblI";
+
+  //Load our .env file that contains our Stripe Secret key
+  await dotenv.load(fileName: "assets/.env");
+
   await DatabaseHelper.instance.database;
-  log(
-    ":::: :::: :::: :::: ::: ::: ::: :::DatabaseHelper.instance.database called",
-  );
+
   await GetStorage.init();
-  log(":::: :::: :::: :::: ::: ::: ::: :::GetStorage.init() called");
+
   await PermissionHandler.requestPermission();
-  log(
-    ":::: :::: :::: :::: ::: ::: ::: :::PermissionHandler.requestPermission() called",
-  );
+
   Get.put(AuthController(), permanent: true);
   runApp(const MyApp());
 }

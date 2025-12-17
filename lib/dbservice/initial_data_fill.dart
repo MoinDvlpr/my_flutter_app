@@ -264,9 +264,10 @@ class InitialDataFill {
         SHIPPING_ADDRESS: shippingAddress,
         CUSTOMER_NAME: customerName,
         PAYMENT_METHOD: paymentMethods[random.nextInt(paymentMethods.length)],
-        RP_ORDER_ID: 'RP_${DateTime.now().millisecondsSinceEpoch}_$orderNum',
-        RP_PAYMENT_ID: null,
-        RP_SIGNATURE: null,
+        // RP_ORDER_ID: 'RP_${DateTime.now().millisecondsSinceEpoch}_$orderNum',
+        PAYMENT_INTENT_ID:
+            'RP_${DateTime.now().millisecondsSinceEpoch}_$orderNum',
+        PAYMENT_STATUS: "PAID",
         TOTAL_QTY: totalQty,
         DELIVERY_CHARGE: 150.0,
         TOTAL_AMOUNT: totalAmount + 150.0,

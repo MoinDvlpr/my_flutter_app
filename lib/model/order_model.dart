@@ -8,14 +8,17 @@ class OrderModel {
   String shippingAddress;
   String customerName;
   String paymentMethod;
-  String? razorpayOrderId;
-  String? razorpayPaymentId;
-  String? razorpaySignature;
+  // String? razorpayOrderId;
+  // String? razorpayPaymentId;
+  // String? razorpaySignature;
   double latitude;
   double longitude;
   int totalQuantity;
   double totalAmount;
   double deliveryCharge;
+
+  final String paymentIntentId; // Stripe Payment Intent ID
+  final String paymentStatus; // 'succeeded', 'processing', 'failed'
 
   OrderModel({
     this.orderId,
@@ -27,9 +30,12 @@ class OrderModel {
     required this.paymentMethod,
     required this.latitude,
     required this.longitude,
-    this.razorpayOrderId,
-    this.razorpayPaymentId,
-    this.razorpaySignature,
+    required this.paymentIntentId,
+    required this.paymentStatus,
+
+    // this.razorpayOrderId,
+    // this.razorpayPaymentId,
+    // this.razorpaySignature,
     required this.totalQuantity,
     required this.totalAmount,
     required this.deliveryCharge,
@@ -44,9 +50,12 @@ class OrderModel {
       SHIPPING_ADDRESS: shippingAddress,
       CUSTOMER_NAME: customerName,
       PAYMENT_METHOD: paymentMethod,
-      RP_ORDER_ID: razorpayOrderId,
-      RP_PAYMENT_ID: razorpayPaymentId,
-      RP_SIGNATURE: razorpaySignature,
+      // RP_ORDER_ID: razorpayOrderId,
+      // RP_PAYMENT_ID: razorpayPaymentId,
+      // RP_SIGNATURE: razorpaySignature,
+      PAYMENT_INTENT_ID: paymentIntentId,
+      PAYMENT_STATUS: paymentStatus,
+
       TOTAL_QTY: totalQuantity,
       DELIVERY_CHARGE: deliveryCharge,
       TOTAL_AMOUNT: totalAmount,
@@ -64,9 +73,11 @@ class OrderModel {
       shippingAddress: map[SHIPPING_ADDRESS],
       customerName: map[CUSTOMER_NAME],
       paymentMethod: map[PAYMENT_METHOD],
-      razorpayOrderId: map[RP_ORDER_ID],
-      razorpayPaymentId: map[RP_PAYMENT_ID],
-      razorpaySignature: map[RP_SIGNATURE],
+      // razorpayOrderId: map[RP_ORDER_ID],
+      // razorpayPaymentId: map[RP_PAYMENT_ID],
+      // razorpaySignature: map[RP_SIGNATURE],
+      paymentIntentId: map[PAYMENT_INTENT_ID],
+      paymentStatus: map[PAYMENT_STATUS],
       totalQuantity: map[TOTAL_QTY],
       deliveryCharge: map[DELIVERY_CHARGE].toDouble(),
       totalAmount: map[TOTAL_AMOUNT].toDouble(),

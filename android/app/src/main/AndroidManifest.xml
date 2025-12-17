@@ -12,7 +12,8 @@
     <application
         android:label="my_flutter_app"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:theme="@style/NormalTheme">
         <meta-data android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyBtJdornkr7f_Bm5PE5CMQ8EU9PvyNOzTE"/>
         <activity
@@ -20,7 +21,7 @@
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""
-            android:theme="@style/LaunchTheme"
+            android:theme="@style/NormalTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">

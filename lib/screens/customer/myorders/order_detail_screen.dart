@@ -112,27 +112,22 @@ class OrderDetailScreen extends StatelessWidget {
   }
 
   Widget _buildOrderHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              order.razorpayOrderId ?? '',
-              style: AppTextStyle.semiBoldTextstyle,
-            ),
-          ],
+        Text(
+          order.paymentIntentId ?? '',
+          style: AppTextStyle.semiBoldTextstyle,
         ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
+        SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               order.orderDate.isNotEmpty
                   ? orderController.formatOrderDate(order.orderDate)
                   : 'dd mm yyyy',
             ),
-            const SizedBox(height: 4),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(

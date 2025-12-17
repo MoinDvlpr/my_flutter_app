@@ -1,7 +1,5 @@
 import 'dart:developer';
-import 'dart:math' as math;
 import 'package:sqflite/sqflite.dart';
-import 'package:uuid/uuid.dart';
 import '../model/address_model.dart';
 import '../model/cart_model.dart';
 import '../model/category_model.dart';
@@ -203,6 +201,28 @@ CREATE TABLE $INVENTORY_ITEMS (
   )
 ''');
 
+        /// WITH RAZOR PAY
+        // await db.execute('''
+        // CREATE TABLE $ORDERS (
+        //   $ORDERID INTEGER PRIMARY KEY AUTOINCREMENT,
+        //   $USERID INTEGER,
+        //   $LATITUDE DOUBLE,
+        //   $LONGITUDE DOUBLE,
+        //   $ORDER_STATUS TEXT NOT NULL,
+        //   $ORDER_DATE TEXT NOT NULL,
+        //   $SHIPPING_ADDRESS TEXT NOT NULL,
+        //   $CUSTOMER_NAME TEXT NOT NULL,
+        //   $PAYMENT_METHOD TEXT NOT NULL,
+        //   $RP_ORDER_ID TEXT,
+        //   $RP_PAYMENT_ID TEXT,
+        //   $RP_SIGNATURE TEXT,
+        //   $DELIVERY_CHARGE REAL NOT NULL,
+        //   $TOTAL_QTY INTEGER NOT NULL,
+        //   $TOTAL_AMOUNT REAL NOT NULL
+        // );
+        // ''');
+
+        // In db_helper.dart - Update ORDERS table creation
         await db.execute('''
 CREATE TABLE $ORDERS (
   $ORDERID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -214,9 +234,8 @@ CREATE TABLE $ORDERS (
   $SHIPPING_ADDRESS TEXT NOT NULL,
   $CUSTOMER_NAME TEXT NOT NULL,
   $PAYMENT_METHOD TEXT NOT NULL,
-  $RP_ORDER_ID TEXT,
-  $RP_PAYMENT_ID TEXT,
-  $RP_SIGNATURE TEXT,
+  $PAYMENT_INTENT_ID TEXT,  
+  $PAYMENT_STATUS TEXT,    
   $DELIVERY_CHARGE REAL NOT NULL,
   $TOTAL_QTY INTEGER NOT NULL,
   $TOTAL_AMOUNT REAL NOT NULL

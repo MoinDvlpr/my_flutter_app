@@ -97,15 +97,6 @@ class OrderController extends GetxController
       length: storage.read(ROLE) == "admin" ? 6 : 2,
       vsync: this,
     );
-    // if (storage.read(ROLE) == "admin") {
-    // fetchAllPaidOrders(isInitial: true);
-    // fetchAllProcessingOrders(isInitial: true);
-    // fetchAllShippedOrders(isInitial: true);
-    // fetchAllDeliveredOrders(isInitial: true);
-    // fetchAllCancelledOrders(isInitial: true);
-    // } else {
-    // fetchDeliveredOrders(isInitial: true);
-    // }
   }
 
   @override
@@ -414,7 +405,7 @@ class OrderController extends GetxController
         orderID,
       );
       if (result != null) {
-        razorpayOrderID.value = result.razorpayOrderId ?? 'Undefined';
+        razorpayOrderID.value = result.paymentIntentId ?? 'Undefined';
         shippingAddress.value = result.shippingAddress;
         orderDate.value = result.orderDate;
         customerName.value = result.customerName;

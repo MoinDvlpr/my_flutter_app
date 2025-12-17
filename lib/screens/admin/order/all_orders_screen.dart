@@ -78,24 +78,18 @@ class AllOrdersScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            "Order ${order.razorpayOrderId ?? 'Undefined'}",
-                            style: AppTextStyle.semiBoldTextstyle.copyWith(
-                              fontSize: 14,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            softWrap: true,
-                          ),
-                        ),
-                        Text(
-                          orderController.formatOrderDate(order.orderDate),
-                          style: AppTextStyle.lableStyle,
-                        ),
-                      ],
+                    Text(
+                      "Order ${order.paymentIntentId ?? 'Undefined'}",
+                      style: AppTextStyle.semiBoldTextstyle.copyWith(
+                        fontSize: 14,
+                      ),
+                      overflow: TextOverflow.visible,
+                      softWrap: true,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      orderController.formatOrderDate(order.orderDate),
+                      style: AppTextStyle.lableStyle,
                     ),
                     const SizedBox(height: 4),
                     Text(

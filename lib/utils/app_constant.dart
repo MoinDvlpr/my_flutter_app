@@ -92,6 +92,10 @@ const String RP_PAYMENT_ID = "razorpay_payment_id";
 const String RP_SIGNATURE = "razorpay_signature";
 const String TOTAL_QTY = "total_quantity";
 const String TOTAL_AMOUNT = "total_amount";
+
+const String PAYMENT_INTENT_ID = "payment_intent_id";
+const String PAYMENT_STATUS = "payment_status";
+
 // USERID -> NOT (FK)
 
 // order status names
