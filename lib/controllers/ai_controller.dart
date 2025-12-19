@@ -1,14 +1,14 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
-import 'package:my_flutter_app/widgets/app_snackbars.dart';
-import '../buymateservice/ai_service.dart';
-import '../dbservice/db_helper.dart';
-import '../model/chat_model.dart';
-import '../model/product_model.dart';
-import '../model/category_model.dart';
-import '../utils/app_constant.dart';
+import "package:flutter/material.dart";
+import "package:flutter_dotenv/flutter_dotenv.dart";
+import "package:get/get.dart";
+import "package:get_storage/get_storage.dart";
+import "package:my_flutter_app/widgets/app_snackbars.dart";
+import "../buymateservice/ai_service.dart";
+import "../dbservice/db_helper.dart";
+import "../model/chat_model.dart";
+import "../model/product_model.dart";
+import "../model/category_model.dart";
+import "../utils/app_constant.dart";
 
 class AIController extends GetxController {
   final TextEditingController messageController = TextEditingController();
@@ -27,7 +27,7 @@ class AIController extends GetxController {
   void onInit() {
     super.onInit();
     // Initialize AI service with your API key
-    aiService = GroqAIService(apiKey: dotenv.env['GROQ_API_KEY']!);
+    aiService = GroqAIService(apiKey: dotenv.env["GROQ_API_KEY"]!);
     initializeChat();
   }
 
@@ -51,7 +51,7 @@ class AIController extends GetxController {
       await Future.delayed(const Duration(milliseconds: 100));
       scrollToBottom();
     } catch (e) {
-      AppSnackbars.error('Error', 'Failed to initialize chat: ${e.toString()}');
+      AppSnackbars.error("Error", "Failed to initialize chat: ${e.toString()}");
     }
   }
 
@@ -74,13 +74,13 @@ class AIController extends GetxController {
       );
       storeCategories = allCategories;
     } catch (e) {
-      print('Error loading store context: ${e.toString()}');
+      print("Error loading store context: ${e.toString()}");
     }
   }
 
   void showResetNotification() {
     Get.closeAllSnackbars();
-    AppSnackbars.warning('Chat Reset', 'Chat has been reset (24 hours passed)');
+    AppSnackbars.warning("Chat Reset", "Chat has been reset (24 hours passed)");
   }
 
   Future<void> sendMessage() async {
@@ -114,7 +114,7 @@ class AIController extends GetxController {
           .map((e) => e.toGroqFormat())
           .toList();
 
-      String aiResponse = '';
+      String aiResponse = "";
       ChatMessage? aiMessage;
 
       isTyping.value = true;
@@ -165,11 +165,11 @@ class AIController extends GetxController {
 
       isTyping.value = false;
     } catch (e) {
-      print('Error sending message: ${e.toString()}');
+      print("Error sending message: ${e.toString()}");
 
       // Show error message
       final errorMessage = ChatMessage(
-        message: 'Sorry, I encountered an error. Please try again.',
+        message: "Sorry, I encountered an error. Please try again.",
         isUser: false,
         timestamp: DateTime.now(),
       );
@@ -180,7 +180,7 @@ class AIController extends GetxController {
       isLoading.value = false;
       isTyping.value = false;
 
-      AppSnackbars.error('Error', 'Failed to get AI response');
+      AppSnackbars.error("Error", "Failed to get AI response");
     }
   }
 
@@ -188,30 +188,30 @@ class AIController extends GetxController {
     // Build dynamic context from actual store data
     final categoryNames = storeCategories
         .map((cat) => cat.categoryName)
-        .join(', ');
+        .join(", ");
 
     // Get some sample products for context
     final sampleProducts = storeProducts
         .take(10)
         .map(
           (p) =>
-              '${p.productName} (₹${p.price}${p.discountedPrice != null && p.discountedPrice! < p.price ? ' - On sale: ₹${p.discountedPrice}' : ''})',
+              "${p.productName} (₹${p.price}${p.discountedPrice != null && p.discountedPrice! < p.price ? " - On sale: ₹${p.discountedPrice}" : ""})",
         )
-        .join(', ');
+        .join(", ");
 
-    return '''
+    return """
 You are BuyM8, a helpful shopping assistant for our e-commerce store.
 
 Store Information:
 - We sell products across multiple categories
-- Available categories: ${categoryNames.isNotEmpty ? categoryNames : 'Electronics, Fashion, Home & Kitchen, Books, Sports'}
-- Sample products: ${sampleProducts.isNotEmpty ? sampleProducts : 'Various products available'}
+- Available categories: ${categoryNames.isNotEmpty ? categoryNames : "Electronics, Fashion, Home & Kitchen, Books, Sports"}
+- Sample products: ${sampleProducts.isNotEmpty ? sampleProducts : "Various products available"}
 - We offer discounts for registered users through discount groups
 - Payment methods: Credit/Debit cards, UPI, Net banking, Cash on delivery
 - Order statuses: Pending, Paid, Processing, Shipped, Delivered, Cancelled
 
 Your Role:
-1. Help users find products they're looking for
+1. Help users find products they"re looking for
 2. Provide product recommendations based on their needs
 3. Answer questions about pricing, availability, and features
 4. Explain our discount system and how users can save money
@@ -228,7 +228,7 @@ Important Guidelines:
 - If questions are completely unrelated to shopping, politely redirect to shopping topics
 
 Remember: Be natural and helpful, not robotic. Think of yourself as a friendly store assistant.
-''';
+""";
   }
 
   void scrollToBottom() {
@@ -247,9 +247,9 @@ Remember: Be natural and helpful, not robotic. Think of yourself as a friendly s
     try {
       await DatabaseHelper.instance.clearAllData();
       messages.clear();
-      AppSnackbars.success('Success', 'Chat cleared successfully');
+      AppSnackbars.success("Success", "Chat cleared successfully");
     } catch (e) {
-      AppSnackbars.error('Error', 'Failed to clear chat');
+      AppSnackbars.error("Error", "Failed to clear chat");
     }
   }
 }

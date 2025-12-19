@@ -25,7 +25,7 @@ class ChatMessage {
 
   factory ChatMessage.fromMap(Map<String, dynamic> map) {
     return ChatMessage(
-        chatMsgID: map[CHAT_MSG_ID] as int?,
+      chatMsgID: map[CHAT_MSG_ID] as int?,
       message: map[MESSAGE] as String,
       isUser: (map[IS_USER] as int) == 1,
       timestamp: DateTime.parse(map[TIMESTAMP] as String),
@@ -34,9 +34,6 @@ class ChatMessage {
 
   // Convert to Groq API format
   Map<String, dynamic> toGroqFormat() {
-    return {
-      ROLE: isUser ? 'user' : 'system',
-      CONTENT: message,
-    };
+    return {ROLE: isUser ? "user" : "system", CONTENT: message};
   }
 }
